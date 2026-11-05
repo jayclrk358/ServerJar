@@ -2,7 +2,7 @@
 
 A very lightweight, fast-starting Minecraft Java server, built on
 [Pumpkin](https://github.com/Pumpkin-MC/Pumpkin), a Minecraft server written from scratch in Rust.
-This repo adds performance patches, a tuned low-resource config on top of it.
+This repo adds performance patches and a tuned low-resource config on top of it.
 
 > It's a native program (`pumpkin.exe`), not a `.jar`: there's no JVM. That's where most of the
 > startup and memory savings come from.
@@ -63,7 +63,7 @@ The Linux scripts haven't been tested on a real Linux machine yet.
 |---|---|
 | `0001-answer-ping-and-keep-alive-on-network-thread` | Pumpkin queued every in-game packet, including ping requests and keep-alives, until the next 50 ms tick. That added 0–50 ms (avg ~25 ms) to every player's ping, including the tab-list ping. Vanilla answers these on the network thread; this patch does the same. Skipped when a plugin listens for packets, so plugin events are unchanged. |
 
-Measured with 100 walking bot players ( 60 s hold, same PC, localhost):
+Measured with 100 walking bot players (60 s hold, same PC, localhost):
 
 | | Before 0001 | After 0001 |
 |---|---|---|
@@ -73,6 +73,27 @@ Measured with 100 walking bot players ( 60 s hold, same PC, localhost):
 | MSPT avg | 14.4 ms | 12.2 ms |
 | RAM peak | 610 MB | 598 MB |
 | TPS | 20.0 | 20.0 |
+
+| Patch | Why |
+|---|---|
+| `0002-keep-serial-entity-schedule-through-small-count-changes` | Pumpkin tries to tick separate groups ("islands") of entities in parallel, and backs off for 20 ticks when a plan isn't worth it. But it dropped that back-off whenever the entity count changed, which with players around is almost every tick, as mobs spawn and despawn. Profiling with 100 players showed it re-planning on ~35% of ticks and throwing every plan away (partitioning ran out of its budget each time). Now only a change of more than 1/8 of the count cuts the back-off short. Tick order is unchanged: those ticks ran serially anyway. Covered by Pumpkin's unit tests; not yet measured under load. |
+
+### Where tick time goes (for future patches)
+
+Profiled with 100 players spread over ~1,800 active chunks. Overworld tick, without LTO:
+
+| Phase | 65 entities | ~900 entities |
+|---|---|---|
+| Entity ticking | 0.8 ms | **14.5 ms** |
+| Player ticking | 2.6 ms | 7.9 ms |
+| Chunk ticking | 0.2 ms | 4.1 ms |
+| Entity tracker | 0.1 ms | 2.4 ms |
+
+Entity ticking runs on a single thread: no parallel plan ever succeeded. Only sheep, pigs, cows
+and chickens have audited tick reach. Every other mob gets a conservative reach of ~32–50 blocks,
+so the islands merge and planning runs out of budget. Auditing the common hostile mobs (skeleton,
+creeper, zombie, enderman, spider) is the big remaining win, but it has to follow Pumpkin's
+vanilla-parity rules for entity islands (see `AGENTS.md` in Pumpkin).
 
 ## Config changes (`server/pumpkin.toml`)
 

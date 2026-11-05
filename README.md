@@ -24,9 +24,37 @@ Target: **Minecraft Java 26.3** (protocol 777). Plugin compatibility (Bukkit/Pap
 | `server/pumpkin.toml` | Low-resource config (see below). |
 | `server/start.bat` / `start.sh` | Starts the server. |
 | `server/pumpkin.service` | systemd unit for Linux. |
+| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads on GitHub. |
 
-## Build
+## Download (no build needed)
 
+Ready-made servers are on the [Releases](https://github.com/jayclrk358/ServerJar/releases) page.
+It's one file, like a server jar but without needing Java.
+
+**Linux VPS** (x86-64, Ubuntu 22.04+ / Debian 12+):
+
+```bash
+mkdir -p ~/mc && cd ~/mc
+curl -L https://github.com/jayclrk358/ServerJar/releases/latest/download/ServerJar-linux-x86_64.tar.gz | tar -xz --strip-components=1
+./start.sh
+```
+
+Open TCP 25565 in the firewall (`sudo ufw allow 25565/tcp`, plus your provider's panel), then
+connect with a Minecraft Java 26.3 client. To run it as a service, edit the user and paths in
+`pumpkin.service` (they should point at `~/mc`), copy it to `/etc/systemd/system/` and run
+`sudo systemctl enable --now pumpkin`.
+
+**Windows:** download `ServerJar-windows-x86_64.zip`, unzip it, and run `start.bat`.
+
+To update, download the new release over the old `pumpkin` / `pumpkin.exe` and keep your
+`pumpkin.toml` and `world` folder. Back up `world` first.
+
+Release builds target x86-64-v3 CPUs (AVX2, roughly 2015 or newer). They're built by GitHub
+Actions (`.github/workflows/release.yml`) whenever a `v*` tag is pushed.
+
+## Build from source
+
+Only needed if you want to change the patches, or tune the build to one specific CPU.
 Needs Git, [Rust](https://rustup.rs) and the Visual Studio C++ build tools (Windows).
 
 ```powershell

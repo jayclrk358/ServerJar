@@ -4,11 +4,13 @@
 #   3. downloads the vanilla server jar Pumpkin needs for its game data (hash-checked)
 #   4. builds a release binary tuned for this CPU and copies it to server\
 #
-# Usage:  powershell -ExecutionPolicy Bypass -File build.ps1 [-Portable]
+# Usage:  powershell -ExecutionPolicy Bypass -File build.ps1 [-Portable | -Cpu NAME]
 #   -Portable   build for any x86-64 CPU instead of this machine's (use when the
 #               binary will run on a different PC/host)
+#   -Cpu NAME   build for a specific CPU level, e.g. x86-64-v3
 param(
     [switch]$Portable,
+    [string]$Cpu = 'native',
     [string]$PumpkinRepo = 'https://github.com/Pumpkin-MC/Pumpkin.git',
     [string]$PumpkinCommit = 'd1190dc51edc3d4447780017e244f8bc882cb81a',
     [string]$MinecraftVersion = '26.3'
@@ -59,7 +61,7 @@ if (-not (Test-Path $jar) -or (Get-FileHash $jar -Algorithm SHA1).Hash -ne $serv
 $env:PUMPKIN_MINECRAFT_SERVER_JAR = $jar
 
 # 4. build
-$env:RUSTFLAGS = if ($Portable) { '' } else { '-C target-cpu=native' }
+$env:RUSTFLAGS = if ($Portable) { '' } else { "-C target-cpu=$Cpu" }
 Write-Host "Building (release, LTO; this takes a while)..."
 Push-Location $src
 try { Run cargo @('build', '--release', '-p', 'pumpkin') } finally { Pop-Location }

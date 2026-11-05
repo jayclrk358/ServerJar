@@ -1,0 +1,28 @@
+# systemd unit for running the server on Linux.
+# Install (edit User and paths first if your folder isn't /home/mc/ServerJar/server):
+#   sudo cp pumpkin.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now pumpkin
+# Logs: journalctl -u pumpkin -f
+[Unit]
+Description=Pumpkin Minecraft server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=mc
+WorkingDirectory=/home/mc/ServerJar/server
+ExecStart=/home/mc/ServerJar/server/pumpkin
+Restart=on-failure
+RestartSec=5
+# Pumpkin saves and shuts down cleanly on SIGTERM; give it time to finish
+TimeoutStopSec=60
+
+# Hardening: the server only needs its own folder
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/mc/ServerJar/server
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

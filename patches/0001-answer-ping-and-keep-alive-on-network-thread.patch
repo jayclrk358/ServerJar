@@ -1,0 +1,54 @@
+diff --git a/crates/pumpkin-core/src/net/java/mod.rs b/crates/pumpkin-core/src/net/java/mod.rs
+index 6f139ff02..43cba91db 100644
+--- a/crates/pumpkin-core/src/net/java/mod.rs
++++ b/crates/pumpkin-core/src/net/java/mod.rs
+@@ -304,12 +304,48 @@ impl JavaClient {
+                         break;
+                     }
+ 
+-                    player.inbound_packets.push(packet);
++                    if !self.handle_latency_packet_now(player, server, &packet) {
++                        player.inbound_packets.push(packet);
++                    }
+                 }
+             }
+         }
+     }
+ 
++    /// Answers ping requests and keep-alives as soon as they arrive, like vanilla does on the
++    /// netty thread. Queuing them for the tick adds up to a full tick to every measured ping.
++    fn handle_latency_packet_now(
++        &self,
++        player: &Player,
++        server: &Server,
++        packet: &RawPacket,
++    ) -> bool {
++        let version = CURRENT_MC_VERSION;
++        // Plugins may observe or cancel packets; keep those on the tick path.
++        if server
++            .plugin_manager
++            .has_handlers::<crate::plugin::server::packet::PacketReceivedEvent>()
++        {
++            return false;
++        }
++        let mut payload = &packet.payload[..];
++        if packet.id == SPlayPingRequest::to_id(version)
++            && let Ok(request) = SPlayPingRequest::read(&mut payload, &version)
++        {
++            self.handle_play_ping_request(&request);
++            return true;
++        }
++        if packet.id == pumpkin_protocol::java::server::play::SKeepAlive::to_id(version)
++            && let Ok(keep_alive) =
++                pumpkin_protocol::java::server::play::SKeepAlive::read(&mut payload, &version)
++        {
++            self.handle_keep_alive(player, &keep_alive);
++            return true;
++        }
++        // Malformed packets fall through so the tick path reports and kicks as before.
++        false
++    }
++
+     pub async fn await_tasks(&self) {
+         self.tasks.close();
+         self.tasks.wait().await;

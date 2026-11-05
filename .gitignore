@@ -1,0 +1,17 @@
+# Upstream source checkout (recreated by build.ps1)
+/Pumpkin/
+
+# Mojang's server jar: not redistributable
+/vanilla/
+*.jar
+
+# Built binaries
+*.exe
+*.pdb
+
+# Runtime state: worlds, logs, player data and private keys
+/server/*
+!/server/pumpkin.toml
+!/server/start.bat
+*.der
+*.key

@@ -55,7 +55,10 @@ install -m 755 "$B/pumpkin" "$MC_DIR/pumpkin"
 install -m 755 "$B/start.sh" "$MC_DIR/start.sh"
 [[ -f "$MC_DIR/pumpkin.toml" ]] || install -m 644 "$B/pumpkin.toml" "$MC_DIR/pumpkin.toml"
 mkdir -p "$MC_DIR/panel" "$MC_DIR/plugins/data/multiversion"
-RAW="https://raw.githubusercontent.com/$REPO/${MC_BRANCH:-main}"
+# Resolve the branch to a commit first: raw URLs by branch name are cached for minutes, by commit never.
+BRANCH="${MC_BRANCH:-main}"
+SHA="$(curl -fsSL --max-time 15 "https://api.github.com/repos/$REPO/commits/$BRANCH" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha"])' 2>/dev/null || true)"
+RAW="https://raw.githubusercontent.com/$REPO/${SHA:-$BRANCH}"
 # Panel: take it from the bundle, else straight from the repository (it is two plain files).
 if [[ -d "$B/panel" ]]; then
   install -m 644 "$B/panel/panel.py" "$B/panel/panel.html" "$MC_DIR/panel/"
@@ -217,7 +220,8 @@ case "${1:-help}" in
          else echo "Panel: from your PC run   ssh -L 8080:127.0.0.1:8080 root@$ip   then open http://localhost:8080"; fi
          echo "Password: set during install; change with   sudo -u minecraft python3 $MC_DIR/panel/panel.py --server $MC_DIR --set-password" ;;
   config) ${EDITOR:-nano} "$MC_DIR/pumpkin.toml" && echo "restart to apply: mc restart" ;;
-  update) curl -fsSL "https://raw.githubusercontent.com/jayclrk358/ServerJar/main/install.sh" | sudo bash ;;
+  update) sha=$(curl -fsSL --max-time 15 https://api.github.com/repos/jayclrk358/ServerJar/commits/main | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha"])' 2>/dev/null || echo main)
+          curl -fsSL "https://raw.githubusercontent.com/jayclrk358/ServerJar/$sha/install.sh" | sudo bash ;;
   *) echo "usage: mc start|stop|restart|status|logs|panel|config|update" ;;
 esac
 MC

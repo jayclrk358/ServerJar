@@ -13,7 +13,9 @@ This repo adds performance patches and a tuned low-resource config on top of it.
 | Idle RAM (world loaded) | ~1.5–2 GB | **~22–28 MB** |
 | 100 walking players | – | 20 TPS, ~1.7 cores, ~600 MB peak |
 
-Target: **Minecraft Java 26.3** (protocol 777). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
+Target: **Minecraft Java 26.3** (protocol 777). Other client versions can join through the
+[`multiversion` plugin](plugins/multiversion/README.md) (26.2 so far, more versions as translators
+are added). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 
 ## What's in here
 
@@ -24,7 +26,8 @@ Target: **Minecraft Java 26.3** (protocol 777). Plugin compatibility (Bukkit/Pap
 | `server/pumpkin.toml` | Low-resource config (see below). |
 | `server/start.bat` / `start.sh` | Starts the server. |
 | `server/pumpkin.service` | systemd unit for Linux. |
-| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads on GitHub. |
+| `plugins/multiversion/` | **Pumpkin plugin** (WebAssembly, Rust) that lets other Minecraft versions join: an in-process protocol-translating proxy with Mojang auth and identity forwarding. Drop in `multiversion.wasm`, apply the three `pumpkin.toml` settings it writes out, done. See [`plugins/multiversion/README.md`](plugins/multiversion/README.md). |
+| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads and `multiversion.wasm` on GitHub. |
 
 ## Download (no build needed)
 
@@ -84,6 +87,23 @@ chmod +x build.sh server/start.sh && ./build.sh
 - Open TCP 25565 in the firewall (`sudo ufw allow 25565/tcp` and your provider's panel).
 
 The Linux scripts haven't been tested on a real Linux machine yet.
+
+## Letting other Minecraft versions join
+
+Pumpkin only speaks 26.3. The `multiversion` plugin handles the rest by itself: it listens on the
+public port, speaks the client's own version, verifies the player with Mojang, logs into Pumpkin on a
+localhost port and forwards the real UUID, skin and IP with a signed Velocity handshake. Supported
+today: 26.3 (native) and 26.2 (translated); older versions are added one translator at a time.
+
+```bash
+cp multiversion.wasm server/plugins/      # from the release, or ./plugins/multiversion/build.sh
+./server/start.sh                          # first start writes plugins/data/multiversion/config.toml and
+                                           # pumpkin-settings.txt: paste those settings into pumpkin.toml
+                                           # (moves Pumpkin to 127.0.0.1:25566), then restart
+```
+
+`./plugins/multiversion/install.sh` does the copy and the `pumpkin.toml` edit for you if you prefer.
+Players connect to 25565 as before; only that port needs to be open.
 
 ## Patches
 

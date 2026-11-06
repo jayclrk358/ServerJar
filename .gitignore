@@ -18,3 +18,7 @@
 *.der
 *.key
 
+
+# Plugin build output
+/plugins/multiversion/target/
+/plugins/multiversion/multiversion.wasm

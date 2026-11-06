@@ -12,7 +12,30 @@ permissions:
   contents: write
 
 jobs:
+  # Pumpkin plugin (WebAssembly) that lets other client versions join (see plugins/multiversion/README.md).
+  multiversion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal && rustup default stable && rustup target add wasm32-wasip2
+
+      - name: Test
+        run: cargo test --release --manifest-path plugins/multiversion/Cargo.toml
+
+      - name: Build multiversion.wasm
+        run: ./plugins/multiversion/build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: multiversion
+          path: plugins/multiversion/target/wasm32-wasip2/release/multiversion.wasm
+          if-no-files-found: error
+
   build:
+    needs: multiversion
     strategy:
       fail-fast: false
       matrix:
@@ -30,6 +53,11 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: multiversion
+          path: plugins/multiversion
+
       # x86-64-v3 (AVX2, ~2015+ CPUs) is fast and runs on practically every server CPU.
       - name: Build (Linux)
         if: runner.os == 'Linux'
@@ -46,7 +74,9 @@ jobs:
           mkdir -p dist bundle/ServerJar
           cp server/pumpkin "dist/pumpkin-${{ matrix.name }}"
           cp server/pumpkin server/pumpkin.toml server/start.sh server/pumpkin.service bundle/ServerJar/
-          chmod +x bundle/ServerJar/pumpkin bundle/ServerJar/start.sh
+          mkdir -p bundle/ServerJar/plugins/multiversion
+          cp plugins/multiversion/multiversion.wasm plugins/multiversion/install.sh plugins/multiversion/README.md bundle/ServerJar/plugins/multiversion/
+          chmod +x bundle/ServerJar/pumpkin bundle/ServerJar/start.sh bundle/ServerJar/plugins/multiversion/install.sh
           tar -C bundle -czf "dist/ServerJar-${{ matrix.name }}.tar.gz" ServerJar
 
       - name: Package (Windows)
@@ -56,6 +86,8 @@ jobs:
           New-Item -ItemType Directory -Force dist, bundle/ServerJar | Out-Null
           Copy-Item server/pumpkin.exe "dist/pumpkin-${{ matrix.name }}.exe"
           Copy-Item server/pumpkin.exe, server/pumpkin.toml, server/start.bat bundle/ServerJar/
+          New-Item -ItemType Directory -Force bundle/ServerJar/plugins/multiversion | Out-Null
+          Copy-Item plugins/multiversion/multiversion.wasm, plugins/multiversion/README.md bundle/ServerJar/plugins/multiversion/
           Compress-Archive -Path bundle/ServerJar -DestinationPath "dist/ServerJar-${{ matrix.name }}.zip"
 
       - uses: actions/upload-artifact@v4
@@ -75,6 +107,7 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+          # the multiversion artifact is one file, so it lands as dist/multiversion.wasm
 
       - name: Publish release
         env:
@@ -93,6 +126,7 @@ jobs:
           | \`ServerJar-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit. |
           | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
           | \`ServerJar-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
+          | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |
 
           Built for x86-64-v3 CPUs (AVX2, roughly 2015 or newer).
           Pumpkin commit \`$commit\` with these patches:

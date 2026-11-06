@@ -18,3 +18,8 @@
 *.der
 *.key
 
+
+# ViaProxy runtime (jar, config with secret, plugin data, logs) and plugin build output
+/via/run/
+/via/plugin/build/
+/via/PumpkinForward.jar

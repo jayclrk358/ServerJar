@@ -5,7 +5,7 @@ use super::buf::{varint_len, Reader, Writer};
 use aes::cipher::{AsyncStreamCipher, KeyIvInit};
 #[allow(unused_imports)]
 use std::convert::TryInto;
-use flate2::{Compress, Compression, Decompress, FlushCompress, FlushDecompress};
+use flate2::{Compress, Compression, Decompress, FlushCompress, FlushDecompress, Status};
 
 type Aes128Cfb8Enc = cfb8::Encryptor<aes::Aes128>;
 type Aes128Cfb8Dec = cfb8::Decryptor<aes::Aes128>;
@@ -70,11 +70,30 @@ impl Inbound {
         if data_len < 0 || data_len as usize > MAX_PACKET * 4 {
             return Err(format!("invalid uncompressed length {data_len}"));
         }
-        let mut out = Vec::with_capacity(data_len as usize);
+        let mut out = Vec::with_capacity(data_len as usize + 16);
         self.inflater.reset(true);
-        self.inflater
-            .decompress_vec(r.remaining(), &mut out, FlushDecompress::Finish)
-            .map_err(|e| format!("zlib: {e}"))?;
+        let input = r.remaining();
+        loop {
+            let consumed = self.inflater.total_in() as usize;
+            let before_out = self.inflater.total_out();
+            let status = self.inflater
+                .decompress_vec(&input[consumed..], &mut out, FlushDecompress::Finish)
+                .map_err(|e| format!("zlib: {e}"))?;
+            match status {
+                Status::StreamEnd => break,
+                Status::Ok | Status::BufError => {
+                    if out.len() > data_len as usize {
+                        return Err(format!("decompressed more than the declared {data_len} bytes"));
+                    }
+                    if self.inflater.total_out() == before_out && self.inflater.total_in() as usize == consumed {
+                        return Err("truncated compressed packet".into());
+                    }
+                    if out.len() == out.capacity() {
+                        out.reserve(1024);
+                    }
+                }
+            }
+        }
         if out.len() != data_len as usize {
             return Err(format!("decompressed {} bytes, expected {data_len}", out.len()));
         }
@@ -132,6 +151,28 @@ impl Default for Outbound {
 }
 
 impl Outbound {
+    /// zlib-compresses `data` completely. `compress_vec` only fills the spare capacity of the
+    /// output vector, so keep going (growing it) until the stream is finished.
+    fn deflate(&mut self, data: &[u8]) -> Vec<u8> {
+        self.deflater.reset();
+        let mut out = Vec::with_capacity(data.len() / 2 + 64);
+        loop {
+            let before_in = self.deflater.total_in();
+            let before_out = self.deflater.total_out();
+            let status = self.deflater.compress_vec(&data[before_in as usize..], &mut out, FlushCompress::Finish).expect("zlib compression");
+            match status {
+                Status::StreamEnd => return out,
+                Status::Ok | Status::BufError => {
+                    if self.deflater.total_out() == before_out && self.deflater.total_in() == before_in {
+                        out.reserve(data.len() + 64);
+                    } else if out.len() == out.capacity() {
+                        out.reserve(out.capacity().max(1024));
+                    }
+                }
+            }
+        }
+    }
+
     pub fn enable_encryption(&mut self, key: [u8; 16]) {
         self.cipher = Some(Cfb8Stream::new(key));
     }
@@ -158,9 +199,7 @@ impl Outbound {
             out.extend_from_slice(&w.buf);
             return;
         }
-        let mut compressed = Vec::with_capacity(packet.len() / 2 + 64);
-        self.deflater.reset();
-        let _ = self.deflater.compress_vec(packet, &mut compressed, FlushCompress::Finish);
+        let compressed = self.deflate(packet);
         let inner_len = varint_len(packet.len() as i32) + compressed.len();
         let mut w = Writer::with_capacity(inner_len + 5);
         w.varint(inner_len as i32);
@@ -191,6 +230,32 @@ mod tests {
             assert!(ib.next_packet().unwrap().is_none());
         }
     }
+    #[test]
+    fn incompressible_packets_survive_compression() {
+        // Pseudo-random bytes don't shrink under zlib; the frame must still carry all of them.
+        let mut x: u32 = 0x1234_5678;
+        let data: Vec<u8> = (0..1146)
+            .map(|_| {
+                x ^= x << 13;
+                x ^= x >> 17;
+                x ^= x << 5;
+                x as u8
+            })
+            .collect();
+        let mut ob = Outbound { compression: 256, ..Default::default() };
+        let mut ib = Inbound { compression: 256, ..Default::default() };
+        let mut wire = Vec::new();
+        ob.frame(&data, &mut wire);
+        ib.feed(&wire);
+        assert_eq!(ib.next_packet().unwrap().unwrap(), data);
+        // and a large one that compresses well
+        let big = vec![7u8; 200_000];
+        let mut wire = Vec::new();
+        ob.frame(&big, &mut wire);
+        ib.feed(&wire);
+        assert_eq!(ib.next_packet().unwrap().unwrap(), big);
+    }
+
     #[test]
     fn cfb8_roundtrip() {
         let key = [9u8; 16];

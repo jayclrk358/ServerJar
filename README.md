@@ -148,7 +148,7 @@ vanilla-parity rules for entity islands (see `AGENTS.md` in Pumpkin).
 Compared with Pumpkin's defaults:
 
 - View distance 16 → 8, simulation distance 10 → 6 (the biggest RAM/CPU lever with players online)
-- Bedrock listener, plugin engine and telemetry off
+- Bedrock listener and telemetry off (the plugin system stays on so `multiversion.wasm` loads when present)
 - Max players 1000 → 20
 - Network compression level 4 → 1, threshold 256 → 512 bytes
 - Autosave every 10 minutes instead of 5

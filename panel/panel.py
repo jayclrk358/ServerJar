@@ -93,16 +93,24 @@ class Server:
             return "not running"
         self.stop_requested = True
         self.command("stop")
-        deadline = time.time() + timeout
+        # Pumpkin's console reader blocks on stdin until it closes; without this the shutdown
+        # waits forever at "Ending player tasks".
+        try:
+            self.proc.stdin.close()
+        except OSError:
+            pass
+        # Pumpkin's console `stop` can stall at "Ending player tasks" when stdin is a pipe, but
+        # it shuts down cleanly on SIGINT, so send that after a short grace period.
+        deadline = time.time() + 5
         while self.running() and time.time() < deadline:
             time.sleep(0.2)
         if self.running():
-            self.log("[panel] server did not stop in time, sending SIGTERM")
-            self.proc.terminate()
+            self.log("[panel] sending interrupt to finish the shutdown")
+            self.proc.send_signal(signal.SIGINT)
             try:
-                self.proc.wait(10)
+                self.proc.wait(timeout)
             except subprocess.TimeoutExpired:
-                self.log("[panel] killing server")
+                self.log("[panel] server did not stop in time, killing it")
                 self.proc.kill()
         return "stopped"
 

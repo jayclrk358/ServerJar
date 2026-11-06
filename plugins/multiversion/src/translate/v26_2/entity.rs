@@ -64,6 +64,7 @@ impl Entities {
         let is_cushion = ty == d::CUSHION_ENTITY_NEW as i32;
         w.varint(if is_cushion { d::FALLING_BLOCK_ENTITY_OLD as i32 } else { items.entity(ty) });
         w.raw(r.bytes(24)?); // x y z
+        Self::copy_movement(&mut r, &mut w)?; // low-precision velocity (1.21.9+)
         w.raw(r.bytes(3)?); // pitch yaw head
         let data = r.varint()?;
         let falling_block_new = d::NEW_ENTITY_NAMES.iter().position(|n| *n == "falling_block").map_or(-1, |p| p as i32);
@@ -86,6 +87,21 @@ impl Entities {
             m.bool(true);
             m.u8(0xff);
             out.push((super::ids::new::SET_ENTITY_DATA, m.into_inner()));
+        }
+        Ok(())
+    }
+
+    /// Low-precision vector (1.21.9+): one 0 byte for zero, else 2 + 4 bytes plus an optional
+    /// varint scale tail when bit 2 of the first byte is set.
+    pub fn copy_movement(r: &mut Reader, w: &mut Writer) -> Result<()> {
+        let first = r.u8()?;
+        w.u8(first);
+        if first == 0 {
+            return Ok(());
+        }
+        w.raw(r.bytes(5)?);
+        if first & 0b100 != 0 {
+            w.varint(r.varint()?);
         }
         Ok(())
     }
@@ -427,6 +443,24 @@ mod tests {
         assert_eq!(r.i16().unwrap(), -10);
         assert!(r.bool().unwrap());
         assert!(r.is_empty());
+    }
+    #[test]
+    fn add_entity_keeps_layout_with_movement_vector() {
+        let items = Items::new(Dir::ToClient);
+        let mut e = Entities::default();
+        let mut p = Writer::new();
+        p.varint(42);
+        p.uuid(7);
+        p.varint(0); // acacia_boat: same id in both versions
+        p.raw(&[0u8; 24]);
+        p.raw(&[0b101, 0x12, 0, 0, 0, 0]); // vector with continuation flag
+        p.varint(9); // scale tail
+        p.raw(&[1, 2, 3]); // pitch yaw head
+        p.varint(5); // data
+        let mut out = Vec::new();
+        e.add_entity(&items, &p.buf, &mut out).unwrap();
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].1, p.buf);
     }
     #[test]
     fn gamemodes() {

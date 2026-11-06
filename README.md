@@ -27,6 +27,7 @@ are added). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 | `server/start.bat` / `start.sh` | Starts the server. |
 | `server/pumpkin.service` | systemd unit for Linux. |
 | `plugins/multiversion/` | **Pumpkin plugin** (WebAssembly, Rust) that lets other Minecraft versions join: an in-process protocol-translating proxy with Mojang auth and identity forwarding. Drop in `multiversion.wasm`, apply the three `pumpkin.toml` settings it writes out, done. See [`plugins/multiversion/README.md`](plugins/multiversion/README.md). |
+| `panel/` | Web panel to start/stop/restart the server, watch the console, send commands and edit files. Python standard library only; see [`panel/README.md`](panel/README.md). |
 | `.github/workflows/release.yml` | Builds the Linux and Windows release downloads and `multiversion.wasm` on GitHub. |
 
 ## Download (no build needed)
@@ -87,6 +88,12 @@ chmod +x build.sh server/start.sh && ./build.sh
 - Open TCP 25565 in the firewall (`sudo ufw allow 25565/tcp` and your provider's panel).
 
 The Linux scripts haven't been tested on a real Linux machine yet.
+
+## Web panel
+
+`python3 panel/panel.py --server ~/mc` gives you a password-protected page with start/stop/restart,
+the live console with a command box, and a file editor for the server folder. It listens on
+localhost; reach it with `ssh -L 8080:127.0.0.1:8080 user@vps`. Details in [`panel/README.md`](panel/README.md).
 
 ## Letting other Minecraft versions join
 

@@ -22,3 +22,4 @@
 # Plugin build output
 /plugins/multiversion/target/
 /plugins/multiversion/multiversion.wasm
+/server/.panel-auth.json

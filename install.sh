@@ -22,7 +22,7 @@ MC_PORT="${MC_PORT:-25565}"
 PANEL_PORT="${PANEL_PORT:-8080}"
 MC_USER="${MC_USER:-minecraft}"
 REPO="jayclrk358/ServerJar"
-BUNDLE_URL="${MC_RELEASE_URL:-https://github.com/$REPO/releases/latest/download/ServerJar-linux-x86_64.tar.gz}"
+BUNDLE_URL="${MC_RELEASE_URL:-}"
 
 say() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -43,8 +43,25 @@ fi
 # 2. user + files -----------------------------------------------------------------------------------
 id "$MC_USER" >/dev/null 2>&1 || useradd --system --create-home --home-dir "$MC_DIR" --shell /usr/sbin/nologin "$MC_USER"
 mkdir -p "$MC_DIR"
-say "Downloading the latest ServerJar release"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+# A release is published as soon as the plugin is built; the server bundle lands ~30 min later.
+# So pick the newest release that actually has each file, instead of blindly using "latest".
+asset_url() {  # $1 = asset name → download URL of the newest release containing it
+  curl -fsSL --max-time 20 "https://api.github.com/repos/$REPO/releases?per_page=10" 2>/dev/null | python3 -c '
+import json, sys
+name = sys.argv[1]
+for r in json.load(sys.stdin):
+    if r.get("draft"): continue
+    for a in r.get("assets", []):
+        if a["name"] == name:
+            print(a["browser_download_url"]); sys.exit(0)
+' "$1" 2>/dev/null || true
+}
+if [[ -z "$BUNDLE_URL" ]]; then
+  BUNDLE_URL="$(asset_url ServerJar-linux-x86_64.tar.gz)"
+  [[ -n "$BUNDLE_URL" ]] || BUNDLE_URL="https://github.com/$REPO/releases/latest/download/ServerJar-linux-x86_64.tar.gz"
+fi
+say "Downloading the ServerJar release: ${BUNDLE_URL##*/download/}"
 curl -fsSL --retry 5 --max-time 600 -o "$TMP/bundle.tar.gz" "$BUNDLE_URL" || die "download failed: $BUNDLE_URL"
 tar -xzf "$TMP/bundle.tar.gz" -C "$TMP"
 B="$TMP/ServerJar"
@@ -71,7 +88,7 @@ fi
 HAVE_PLUGIN=0
 if [[ -f "$B/plugins/multiversion/multiversion.wasm" ]]; then
   install -m 644 "$B/plugins/multiversion/multiversion.wasm" "$MC_DIR/plugins/multiversion.wasm"; HAVE_PLUGIN=1
-elif curl -fsSL --retry 3 --max-time 120 -o "$TMP/multiversion.wasm" "https://github.com/$REPO/releases/latest/download/multiversion.wasm" 2>/dev/null; then
+elif PLUGIN_URL="$(asset_url multiversion.wasm)" && [[ -n "$PLUGIN_URL" ]] && curl -fsSL --retry 3 --max-time 120 -o "$TMP/multiversion.wasm" "$PLUGIN_URL" 2>/dev/null; then
   install -m 644 "$TMP/multiversion.wasm" "$MC_DIR/plugins/multiversion.wasm"; HAVE_PLUGIN=1
 elif [[ -f "$MC_DIR/plugins/multiversion.wasm" ]]; then
   HAVE_PLUGIN=1

@@ -16,6 +16,9 @@ static STOP: AtomicBool = AtomicBool::new(false);
 
 pub fn request_stop() {
     STOP.store(true, Ordering::Relaxed);
+    if let Some(proxy) = PROXY.lock().unwrap_or_else(|p| p.into_inner()).as_mut() {
+        proxy.reactor.stop();
+    }
 }
 
 fn resolve(addr: &str) -> Result<SocketAddr, String> {
@@ -124,6 +127,7 @@ impl Handler for ProxyHandler {
             reactor.stop();
             return;
         }
+        let _ = &reactor;
         match event {
             Event::Accepted { token, peer } => {
                 if self.conns.len() >= self.config.limits.max_connections {
@@ -204,8 +208,34 @@ impl Handler for ProxyHandler {
     }
 }
 
-/// Runs the proxy until `request_stop` is called. Blocks the calling task.
-pub fn run(config: Config) -> Result<(), String> {
+struct Proxy {
+    reactor: Reactor,
+    handler: ProxyHandler,
+}
+
+// The plugin is single-threaded WebAssembly; the host never runs two of our callbacks at once.
+unsafe impl Send for Proxy {}
+
+static PROXY: std::sync::Mutex<Option<Proxy>> = std::sync::Mutex::new(None);
+
+/// Pumpkin runs this plugin under its sequential policy: while one of our callbacks runs, no other
+/// (unload, events) can. So the proxy loop runs in slices of at most this many milliseconds, one
+/// per server tick, and returns control to the host in between.
+pub const SLICE_MS: u64 = 45;
+
+/// Runs one slice of the proxy loop. Called from a repeating scheduled task every tick.
+pub fn tick() {
+    let mut guard = PROXY.lock().unwrap_or_else(|p| p.into_inner());
+    let Some(proxy) = guard.as_mut() else { return };
+    proxy.reactor.run_for(&mut proxy.handler, SLICE_MS);
+    if proxy.reactor.stopped() {
+        log::info("proxy stopped");
+        *guard = None;
+    }
+}
+
+/// Sets the proxy up (keys, listener). After this, `tick` drives it.
+pub fn start(config: Config) -> Result<(), String> {
     let listen = resolve(&config.listen.address)?;
     let backend_addr = resolve(&config.backend.address)?;
     let keys = ServerKeys::generate()?;
@@ -222,7 +252,7 @@ pub fn run(config: Config) -> Result<(), String> {
         return Err(e);
     }
     log::info(&format!("accepting connections on {listen}"));
-    let mut handler = ProxyHandler {
+    let handler = ProxyHandler {
         config,
         keys,
         backend_addr,
@@ -230,6 +260,6 @@ pub fn run(config: Config) -> Result<(), String> {
         backend_of: HashMap::new(),
         auths: HashMap::new(),
     };
-    reactor.run(&mut handler);
+    *PROXY.lock().unwrap_or_else(|p| p.into_inner()) = Some(Proxy { reactor, handler });
     Ok(())
 }

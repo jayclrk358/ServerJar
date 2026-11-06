@@ -72,12 +72,10 @@ mod plugin {
             }
             crate::log::info("if players can't join, apply plugins/data/multiversion/pumpkin-settings.txt to pumpkin.toml (three settings) and restart");
             *self.config.lock().unwrap() = Some(config.clone());
-            // The proxy loop runs forever inside a scheduled task, which Pumpkin spawns off the tick thread.
-            context.schedule_delayed_task(1, move |_server| {
-                if let Err(e) = crate::proxy::run(config.clone()) {
-                    crate::log::error(&format!("proxy stopped: {e}"));
-                }
-            });
+            // Bind now; then run the proxy loop in short slices, one per server tick, so Pumpkin
+            // can still call our other hooks (and unload us on shutdown) in between.
+            crate::proxy::start(config).map_err(|e| format!("multiversion: {e}"))?;
+            context.schedule_repeating_task(1, 1, |_server| crate::proxy::tick());
             Ok(())
         }
 

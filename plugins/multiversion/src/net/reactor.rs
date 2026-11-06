@@ -58,6 +58,7 @@ pub struct Reactor {
     next_token: Token,
     pub tick_ms: u64,
     stop: bool,
+    last_tick: Option<u64>,
 }
 
 fn to_wasi_addr(addr: SocketAddr) -> IpSocketAddress {
@@ -101,7 +102,7 @@ fn err(e: ErrorCode) -> String {
 
 impl Reactor {
     pub fn new() -> Self {
-        Self { network: instance_network(), listener: None, conns: HashMap::new(), externals: HashMap::new(), next_token: 1, tick_ms: 1000, stop: false }
+        Self { network: instance_network(), listener: None, conns: HashMap::new(), externals: HashMap::new(), next_token: 1, tick_ms: 1000, stop: false, last_tick: None }
     }
 
     /// Binds and listens. Blocks until the bind completes (it is quick).
@@ -184,6 +185,10 @@ impl Reactor {
         self.stop = true;
     }
 
+    pub fn stopped(&self) -> bool {
+        self.stop
+    }
+
     /// Watches an arbitrary pollable (e.g. an HTTP response future). Fires `Event::External` once.
     pub fn watch(&mut self, pollable: Pollable) -> u32 {
         let id = self.next_token;
@@ -216,8 +221,20 @@ impl Reactor {
 
     /// Main loop. Returns only when `stop()` was called.
     pub fn run(&mut self, handler: &mut dyn Handler) {
-        let mut last_tick = wasip2::clocks::monotonic_clock::now();
+        self.run_for(handler, u64::MAX);
+    }
+
+    /// Runs the loop for about `budget_ms` milliseconds (or until `stop()`), then returns so the
+    /// host can run other plugin callbacks. Call it again to continue; state is kept.
+    pub fn run_for(&mut self, handler: &mut dyn Handler, budget_ms: u64) {
+        let start = wasip2::clocks::monotonic_clock::now();
+        let mut last_tick = self.last_tick.unwrap_or(start);
         while !self.stop {
+            let elapsed_budget = (wasip2::clocks::monotonic_clock::now() - start) / 1_000_000;
+            if elapsed_budget >= budget_ms {
+                break;
+            }
+            let remaining_budget = budget_ms - elapsed_budget;
             // Build the pollable set: listener, every open input, outputs with pending data,
             // connecting sockets, and the tick timer.
             let mut pollables: Vec<Pollable> = Vec::new();
@@ -250,7 +267,7 @@ impl Reactor {
             let ext_ids: Vec<u32> = self.externals.keys().copied().collect();
             let now = wasip2::clocks::monotonic_clock::now();
             let elapsed_ms = (now - last_tick) / 1_000_000;
-            let wait_ns = self.tick_ms.saturating_sub(elapsed_ms).max(1) * 1_000_000;
+            let wait_ns = self.tick_ms.saturating_sub(elapsed_ms).max(1).min(remaining_budget) * 1_000_000;
             pollables.push(wasip2::clocks::monotonic_clock::subscribe_duration(wait_ns));
             kinds.push((4, 0));
 
@@ -342,6 +359,7 @@ impl Reactor {
             }
             if elapsed_ms >= self.tick_ms {
                 last_tick = now;
+                self.last_tick = Some(now);
                 events.push(Event::Tick);
             }
             for ev in events {

@@ -22,6 +22,12 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable && rustup target add wasm32-wasip2
 
+      # Compiled dependencies are reused between runs; only changed crates rebuild.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: plugins/multiversion
+          key: wasm32-wasip2
+
       - name: Test
         run: cargo test --release --manifest-path plugins/multiversion/Cargo.toml
 
@@ -33,6 +39,34 @@ jobs:
           name: multiversion
           path: plugins/multiversion/target/wasm32-wasip2/release/multiversion.wasm
           if-no-files-found: error
+
+      # Publish the release right away with the plugin; the server binaries are attached by the
+      # build jobs as they finish (20-30 min later), so `mc update` can pick up the plugin early.
+      - name: Create release with the plugin
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          commit=$(grep -oP "PUMPKIN_COMMIT:-\K[0-9a-f]+" build.sh)
+          mc=$(grep -oP 'MC_VERSION:-\K[0-9.]+' build.sh)
+          patches=$(ls patches/*.patch | xargs -n1 basename | sed 's/^/- /')
+          cat > notes.md <<EOF
+          Ready-to-run server for **Minecraft Java $mc**. No Java or build tools needed.
+
+          | File | For |
+          |---|---|
+          | \`pumpkin-linux-x86_64\` | Linux x86-64 (Ubuntu 22.04+, Debian 12+). Just the server binary. |
+          | \`ServerJar-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + multiversion plugin. |
+          | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
+          | \`ServerJar-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
+          | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |
+
+          Server binaries are attached when their builds finish (about 30 minutes after the plugin).
+          Built for x86-64-v3 CPUs (AVX2, roughly 2015 or newer).
+          Pumpkin commit \`$commit\` with these patches:
+          $patches
+          EOF
+          gh release create "$GITHUB_REF_NAME" plugins/multiversion/target/wasm32-wasip2/release/multiversion.wasm --title "$GITHUB_REF_NAME" --notes-file notes.md
 
   build:
     needs: multiversion
@@ -52,6 +86,20 @@ jobs:
 
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
+
+      # Pumpkin is pinned to one commit, so its compiled crates are reused across runs; only the
+      # patched crates and the final link happen again.
+      - name: Fetch Pumpkin source (for the cache key)
+        shell: bash
+        run: |
+          commit=$(grep -oP "PUMPKIN_COMMIT:-\K[0-9a-f]+" build.sh)
+          git clone --quiet --recurse-submodules https://github.com/Pumpkin-MC/Pumpkin.git Pumpkin
+          git -C Pumpkin checkout --quiet "$commit" && git -C Pumpkin submodule update --init --recursive
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Pumpkin
+          key: ${{ matrix.name }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -99,40 +147,11 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-          # the multiversion artifact is one file, so it lands as dist/multiversion.wasm
-
-      - name: Publish release
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cd dist && sha256sum * > SHA256SUMS && cd ..
-          commit=$(grep -oP "PUMPKIN_COMMIT:-\K[0-9a-f]+" build.sh)
-          mc=$(grep -oP 'MC_VERSION:-\K[0-9.]+' build.sh)
-          patches=$(ls patches/*.patch | xargs -n1 basename | sed 's/^/- /')
-          cat > notes.md <<EOF
-          Ready-to-run server for **Minecraft Java $mc**. No Java or build tools needed.
-
-          | File | For |
-          |---|---|
-          | \`pumpkin-linux-x86_64\` | Linux x86-64 (Ubuntu 22.04+, Debian 12+). Just the server binary. |
-          | \`ServerJar-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + multiversion plugin. |
-          | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
-          | \`ServerJar-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
-          | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |
-
-          Built for x86-64-v3 CPUs (AVX2, roughly 2015 or newer).
-          Pumpkin commit \`$commit\` with these patches:
-          $patches
-          EOF
-          gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes-file notes.md
+          cd dist && sha256sum * > "SHA256SUMS-${{ matrix.name }}" && cd ..
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber

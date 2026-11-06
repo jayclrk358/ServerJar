@@ -144,6 +144,8 @@ for line in lines:
     if h: section = h.group(1).strip()
     if section == "networking.java" and re.match(r"^\s*address\s*=", line): line = f'address = "0.0.0.0:{port}"'
     if section == "commands" and re.match(r"^\s*use_tty\s*=", line): line = "use_tty = false"
+    # without the plugin nobody forwards identities: Pumpkin must authenticate players itself
+    if section in ("networking.proxy", "networking.proxy.velocity") and re.match(r"^\s*enabled\s*=", line): line = "enabled = false"
     out.append(line)
 open(path, "w", encoding="utf-8", newline="\n").write("\n".join(out))
 PY

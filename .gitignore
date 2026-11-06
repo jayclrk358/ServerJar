@@ -23,3 +23,5 @@
 /plugins/multiversion/target/
 /plugins/multiversion/multiversion.wasm
 /server/.panel-auth.json
+/server/.panel-cert.pem
+/server/.panel-key.pem

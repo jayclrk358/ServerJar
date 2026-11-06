@@ -40,6 +40,28 @@ jobs:
           path: via/plugin/build/PumpkinForward.jar
           if-no-files-found: error
 
+  # Pumpkin plugin (WebAssembly) that lets other client versions join (see plugins/multiversion/README.md).
+  multiversion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal && rustup default stable && rustup target add wasm32-wasip2
+
+      - name: Test
+        run: cargo test --release --manifest-path plugins/multiversion/Cargo.toml
+
+      - name: Build multiversion.wasm
+        run: ./plugins/multiversion/build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: multiversion
+          path: plugins/multiversion/target/wasm32-wasip2/release/multiversion.wasm
+          if-no-files-found: error
+
   build:
     needs: plugin
     strategy:
@@ -133,7 +155,8 @@ jobs:
           | \`ServerJar-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit. |
           | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
           | \`ServerJar-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
-          | \`PumpkinForward.jar\` | ViaProxy plugin for multi-version support (1.7.2–26.3 clients). Also inside both bundles under \`via/\`; run \`via/setup.sh\` or \`via\\setup.ps1\`. |
+          | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Install with \`plugins/multiversion/install.sh\`. |
+          | \`PumpkinForward.jar\` | ViaProxy plugin for the Java-based alternative (1.7.2–26.3 clients). Also inside both bundles under \`via/\`; run \`via/setup.sh\` or \`via\\setup.ps1\`. |
 
           Built for x86-64-v3 CPUs (AVX2, roughly 2015 or newer).
           Pumpkin commit \`$commit\` with these patches:

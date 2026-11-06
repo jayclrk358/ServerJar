@@ -1,0 +1,20 @@
+# systemd unit for ViaProxy. Edit User and the paths, then:
+#   sudo cp viaproxy.service /etc/systemd/system/ && sudo systemctl enable --now viaproxy
+# It starts after pumpkin.service so the backend is up when players arrive.
+[Unit]
+Description=ViaProxy (multi-version front for Pumpkin)
+After=network.target pumpkin.service
+Wants=pumpkin.service
+
+[Service]
+User=minecraft
+WorkingDirectory=/home/minecraft/mc/via/run
+ExecStart=/usr/bin/java -Xms64M -Xmx512M -XX:+UseSerialGC -DskipUpdateCheck=true -jar /home/minecraft/mc/via/run/ViaProxy.jar cli
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/minecraft/mc/via/run
+
+[Install]
+WantedBy=multi-user.target

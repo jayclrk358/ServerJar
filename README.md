@@ -13,7 +13,8 @@ This repo adds performance patches and a tuned low-resource config on top of it.
 | Idle RAM (world loaded) | ~1.5–2 GB | **~22–28 MB** |
 | 100 walking players | – | 20 TPS, ~1.7 cores, ~600 MB peak |
 
-Target: **Minecraft Java 26.3** (protocol 777). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
+Target: **Minecraft Java 26.3** (protocol 777). Older and newer clients (1.7.2 … 26.3) can join through the
+optional ViaProxy front described in [`via/`](via/README.md). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 
 ## What's in here
 
@@ -24,7 +25,8 @@ Target: **Minecraft Java 26.3** (protocol 777). Plugin compatibility (Bukkit/Pap
 | `server/pumpkin.toml` | Low-resource config (see below). |
 | `server/start.bat` / `start.sh` | Starts the server. |
 | `server/pumpkin.service` | systemd unit for Linux. |
-| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads on GitHub. |
+| `via/` | Optional multi-version support: ViaProxy in front of Pumpkin plus the `PumpkinForward` plugin that keeps real UUIDs, skins and IPs. See [`via/README.md`](via/README.md). |
+| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads (and the `PumpkinForward.jar` plugin) on GitHub. |
 
 ## Download (no build needed)
 
@@ -84,6 +86,19 @@ chmod +x build.sh server/start.sh && ./build.sh
 - Open TCP 25565 in the firewall (`sudo ufw allow 25565/tcp` and your provider's panel).
 
 The Linux scripts haven't been tested on a real Linux machine yet.
+
+## Letting other Minecraft versions join
+
+Pumpkin only speaks 26.3. To accept clients from 1.7.2 up to 26.3, run ViaProxy in front of it:
+
+```bash
+./via/setup.sh      # needs Java 17+; Windows: powershell -ExecutionPolicy Bypass -File via\setup.ps1
+./server/start.sh && ./via/start-via.sh
+```
+
+That moves Pumpkin to `127.0.0.1:25566`, puts ViaProxy on `25565`, and installs the `PumpkinForward`
+plugin so players keep their real UUID, skin and IP (Pumpkin's Velocity forwarding, signed with a shared
+secret). Details, trade-offs and the plugin source are in [`via/README.md`](via/README.md).
 
 ## Patches
 

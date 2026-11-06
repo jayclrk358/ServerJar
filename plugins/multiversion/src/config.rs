@@ -141,3 +141,36 @@ impl Config {
         }
     }
 }
+
+/// The pumpkin.toml settings this plugin needs, ready to paste. Pumpkin's `online_mode` can stay
+/// on: with proxy forwarding enabled Pumpkin trusts the signed profile instead of asking Mojang.
+pub fn pumpkin_snippet(cfg: &Config) -> String {
+    format!(
+        "# multiversion needs these three things in pumpkin.toml (restart the server afterwards):\n\
+         #\n\
+         # 1. Pumpkin moves to a localhost port; the plugin takes over {public}.\n\
+         [networking.java]\n\
+         address = \"{backend}\"\n\
+         \n\
+         # 2. Pumpkin accepts the player identity the plugin forwards (signed with the shared secret).\n\
+         [networking.proxy]\n\
+         enabled = true\n\
+         \n\
+         [networking.proxy.velocity]\n\
+         enabled = true\n\
+         secret = \"{secret}\"\n\
+         \n\
+         # 3. Plugins on, with this plugin's permissions pre-approved (or answer the console prompt).\n\
+         [plugins]\n\
+         enabled = true\n\
+         \n\
+         [plugins.overrides.multiversion]\n\
+         allowed_permissions = [\"network.tcp\", \"http.outbound\", \"fs.read.data\", \"fs.write.data\"]\n\
+         \n\
+         # Keep {backend_port} closed in your firewall; only {public} needs to be open.\n",
+        public = cfg.listen.address,
+        backend = cfg.backend.address,
+        backend_port = cfg.backend.address.rsplit(':').next().unwrap_or("25566"),
+        secret = cfg.backend.forwarding_secret.replace('\\', "\\\\").replace('"', "\\\""),
+    )
+}

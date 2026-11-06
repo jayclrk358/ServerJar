@@ -93,7 +93,7 @@ esc = secret.replace("\\", "\\\\").replace('"', '\\"')
 wanted = {
     "plugins": {"enabled": "true", "allow_unsigned": "true", "verify_signatures": "false"},
     "plugins.overrides.multiversion": {"enabled": "true", "allowed_permissions": '["network.tcp", "http.outbound", "fs.read.data", "fs.write.data"]', "loopback_only": "false"},
-    "networking.java": {"address": f'"127.0.0.1:{port}"', "online_mode": "false"},
+    "networking.java": {"address": f'"127.0.0.1:{port}"'},
     "networking.proxy": {"enabled": "true"},
     "networking.proxy.velocity": {"enabled": "true", "secret": f'"{esc}"'},
 }

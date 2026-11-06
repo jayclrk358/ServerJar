@@ -470,7 +470,8 @@ impl Connection {
                 Ok(Some(pkt)) => {
                     if let Err(e) = self.handle_backend_packet(pkt, shared, out) {
                         out.push(Action::Log(format!("backend packet error for {}: {e}", self.username)));
-                        self.kick_json("Internal proxy error", out);
+                        let msg = if e.contains("pumpkin.toml") { "Server misconfigured: see the server console." } else { "Internal proxy error" };
+                        self.kick_json(msg, out);
                         return;
                     }
                     if self.phase == Phase::Closed {
@@ -539,7 +540,7 @@ impl Connection {
                     self.backend_out.compression = t;
                     Ok(())
                 }
-                ids::LOGIN_C_HELLO => Err("backend requested encryption: set networking.java.online_mode = false and enable velocity forwarding in pumpkin.toml".into()),
+                ids::LOGIN_C_HELLO => Err("Pumpkin asked for Mojang authentication instead of accepting the forwarded player: enable [networking.proxy] and [networking.proxy.velocity] in pumpkin.toml (see plugins/data/multiversion/pumpkin-settings.txt)".into()),
                 ids::LOGIN_C_DISCONNECT => {
                     let mut r = Reader::new(&payload);
                     let reason = r.string().unwrap_or("{}").to_string();

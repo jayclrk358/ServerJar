@@ -54,8 +54,13 @@ mod plugin {
         }
 
         fn on_load(&self, context: Context) -> pumpkin_plugin_api::Result<()> {
-            let path = format!("{}/config.toml", context.get_data_folder());
+            let folder = context.get_data_folder();
+            let path = format!("{folder}/config.toml");
             let config = crate::config::Config::load_or_create(&path).map_err(|e| format!("multiversion: {e}"))?;
+            // Pumpkin lets a plugin write only its own data folder, so the three pumpkin.toml settings
+            // it needs are written out ready to paste, and checked for at runtime.
+            let snippet = crate::config::pumpkin_snippet(&config);
+            let _ = std::fs::write(format!("{folder}/pumpkin-settings.txt"), &snippet);
             crate::log::info(&format!(
                 "listening on {} for Minecraft {} clients, forwarding to Pumpkin at {}",
                 config.listen.address,
@@ -65,6 +70,7 @@ mod plugin {
             if config.backend.forwarding_secret.is_empty() {
                 crate::log::warn("backend.forwarding_secret is empty; Pumpkin will reject logins. Set it in config.toml and pumpkin.toml.");
             }
+            crate::log::info("if players can't join, apply plugins/data/multiversion/pumpkin-settings.txt to pumpkin.toml (three settings) and restart");
             *self.config.lock().unwrap() = Some(config.clone());
             // The proxy loop runs forever inside a scheduled task, which Pumpkin spawns off the tick thread.
             context.schedule_delayed_task(1, move |_server| {

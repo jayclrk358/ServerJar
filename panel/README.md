@@ -15,15 +15,19 @@ python3 panel/panel.py --server ~/mc              # release layout (binary + pum
 
 The first run asks for a password (or reads `PANEL_PASSWORD`). Then open http://127.0.0.1:8080.
 
-The panel listens on localhost only by default. To use it from your own computer, tunnel the port
-over SSH instead of exposing it:
+To use it from your own computer, run it with `--tls` and bind it to all interfaces:
 
 ```bash
-ssh -L 8080:127.0.0.1:8080 user@your-vps      # then browse http://localhost:8080
+python3 panel/panel.py --server ~/mc --bind 0.0.0.0:8080 --tls
 ```
 
-If you want it reachable directly, put nginx or Caddy with HTTPS in front and keep the panel on
-localhost. Binding it to `0.0.0.0` without HTTPS sends your password in the clear.
+It creates a self-signed certificate on first use and serves `https://your-vps-ip:8080`. Your
+browser shows a certificate warning once (self-signed certificates always do); accept it, the
+connection is encrypted. Open port 8080 in the firewall. This is what `install.sh` sets up.
+
+Without `--tls` the panel should stay on `127.0.0.1` and be reached through an SSH tunnel
+(`ssh -L 8080:127.0.0.1:8080 user@vps`), because the password would otherwise travel in the clear.
+Five wrong passwords lock an address out for five minutes.
 
 Options: `--bind host:port`, `--binary pumpkin.exe` (Windows), `--autostart` (start the server
 with the panel), `--set-password`.

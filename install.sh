@@ -13,7 +13,7 @@
 # Re-running it updates the server binary, plugin and panel and keeps your config and world.
 #
 # Options (environment variables):  MC_DIR=/opt/minecraft  MC_PORT=25565  PANEL_PORT=8080
-#   PANEL_PASSWORD=...  (otherwise asked)   PANEL_PUBLIC=1 (panel on all interfaces, use with HTTPS)
+#   PANEL_PASSWORD=...  (otherwise asked)   PANEL_PUBLIC=0 (panel on localhost only, for SSH tunnels; default 1 = https://ip:8080)
 #   MC_RELEASE_URL=... (bundle tarball to install instead of the latest GitHub release)
 set -euo pipefail
 
@@ -158,7 +158,9 @@ if [[ ! -f "$MC_DIR/.panel-auth.json" ]]; then
   fi
   (cd "$MC_DIR" && PANEL_PASSWORD="$PANEL_PASSWORD" python3 panel/panel.py --server "$MC_DIR" --set-password >/dev/null)
 fi
-BIND="127.0.0.1:$PANEL_PORT"; [[ "${PANEL_PUBLIC:-0}" == "1" ]] && BIND="0.0.0.0:$PANEL_PORT"
+PANEL_PUBLIC="${PANEL_PUBLIC:-1}"
+BIND="127.0.0.1:$PANEL_PORT"; TLS=""
+if [[ "$PANEL_PUBLIC" == "1" ]]; then BIND="0.0.0.0:$PANEL_PORT"; TLS="--tls"; apt-get install -y -qq openssl >/dev/null 2>&1 || true; fi
 chown -R "$MC_USER:$MC_USER" "$MC_DIR"
 cat > /etc/systemd/system/minecraft.service <<UNIT
 [Unit]
@@ -169,7 +171,7 @@ Wants=network-online.target
 [Service]
 User=$MC_USER
 WorkingDirectory=$MC_DIR
-ExecStart=/usr/bin/python3 $MC_DIR/panel/panel.py --server $MC_DIR --bind $BIND --autostart
+ExecStart=/usr/bin/python3 $MC_DIR/panel/panel.py --server $MC_DIR --bind $BIND $TLS --autostart
 Restart=on-failure
 RestartSec=5
 KillSignal=SIGINT
@@ -187,13 +189,13 @@ if [[ -d /run/systemd/system ]]; then
 else
   say "No systemd here; starting the panel in the background instead (log: $MC_DIR/panel.log)"
   pkill -f "$MC_DIR/panel/panel.py" 2>/dev/null || true
-  (cd "$MC_DIR" && setsid su -s /bin/bash "$MC_USER" -c "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt python3 $MC_DIR/panel/panel.py --server $MC_DIR --bind $BIND --autostart" > "$MC_DIR/panel.log" 2>&1 < /dev/null &)
+  (cd "$MC_DIR" && setsid su -s /bin/bash "$MC_USER" -c "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt python3 $MC_DIR/panel/panel.py --server $MC_DIR --bind $BIND $TLS --autostart" > "$MC_DIR/panel.log" 2>&1 < /dev/null &)
 fi
 
 # 5. firewall ---------------------------------------------------------------------------------------
 if command -v ufw >/dev/null; then
   ufw allow "$MC_PORT/tcp" >/dev/null 2>&1 || true
-  [[ "${PANEL_PUBLIC:-0}" == "1" ]] && ufw allow "$PANEL_PORT/tcp" >/dev/null 2>&1 || true
+  [[ "$PANEL_PUBLIC" == "1" ]] && ufw allow "$PANEL_PORT/tcp" >/dev/null 2>&1 || true
   if ufw status | grep -q "Status: inactive"; then
     ufw allow OpenSSH >/dev/null 2>&1 || ufw allow 22/tcp >/dev/null 2>&1 || true
     ufw --force enable >/dev/null 2>&1 || true
@@ -211,7 +213,8 @@ case "${1:-help}" in
   logs) journalctl -u minecraft -f -n 50 ;;
   console) echo "Open the web panel for the live console: mc panel"; journalctl -u minecraft -f -n 30 ;;
   panel) ip=$(curl -4 -fsS --max-time 5 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
-         echo "Panel: from your PC run   ssh -L 8080:127.0.0.1:8080 root@$ip   then open http://localhost:8080"
+         if grep -q -- "--tls" /etc/systemd/system/minecraft.service 2>/dev/null; then echo "Panel: https://$ip:8080  (accept the self-signed certificate warning once)"
+         else echo "Panel: from your PC run   ssh -L 8080:127.0.0.1:8080 root@$ip   then open http://localhost:8080"; fi
          echo "Password: set during install; change with   sudo -u minecraft python3 $MC_DIR/panel/panel.py --server $MC_DIR --set-password" ;;
   config) ${EDITOR:-nano} "$MC_DIR/pumpkin.toml" && echo "restart to apply: mc restart" ;;
   update) curl -fsSL "https://raw.githubusercontent.com/jayclrk358/ServerJar/main/install.sh" | sudo bash ;;
@@ -229,8 +232,8 @@ if [[ "$HAVE_PLUGIN" == "1" ]]; then
 else
   echo "   Players connect to:   $IP:$MC_PORT   (Minecraft 26.3)"
 fi
-if [[ "${PANEL_PUBLIC:-0}" == "1" ]]; then
-  echo "   Web panel:            http://$IP:$PANEL_PORT   (put HTTPS in front before using it from afar)"
+if [[ "$PANEL_PUBLIC" == "1" ]]; then
+  echo "   Web panel:            https://$IP:$PANEL_PORT   (self-signed certificate: accept the browser warning once)"
 else
   echo "   Web panel:            on your PC run  ssh -L $PANEL_PORT:127.0.0.1:$PANEL_PORT root@$IP  then open http://localhost:$PANEL_PORT"
 fi

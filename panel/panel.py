@@ -6,11 +6,12 @@ Standard library only. Run it next to the server folder:
     python3 panel/panel.py --server ./server              # first run asks for a password
     python3 panel/panel.py --server ~/mc --bind 0.0.0.0:8080
 
-By default it listens on 127.0.0.1:8080: reach it through an SSH tunnel
-(ssh -L 8080:127.0.0.1:8080 user@vps) or put a reverse proxy with HTTPS in front before binding
-to a public address. Everything the panel touches stays inside the server folder.
+Use --tls to serve HTTPS with a self-signed certificate (generated on first use), which makes it
+safe to bind to a public address: python3 panel/panel.py --server ~/mc --bind 0.0.0.0:8080 --tls
+Your browser warns once about the certificate; that is expected for self-signed certificates.
+Everything the panel touches stays inside the server folder.
 """
-import argparse, base64, collections, getpass, hashlib, hmac, html, json, mimetypes, os, re, secrets, shutil, signal
+import argparse, base64, collections, getpass, hashlib, hmac, html, json, mimetypes, os, re, secrets, shutil, signal, ssl
 import subprocess, sys, threading, time, urllib.parse
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -149,6 +150,7 @@ class Auth:
     def __init__(self, path):
         self.path = path
         self.sessions = {}
+        self.failures = {}  # ip -> [count, last_time]
         self.lock = threading.Lock()
         self.salt = None
         self.hash = None
@@ -168,6 +170,25 @@ class Auth:
         if self.hash is None:
             return False
         return hmac.compare_digest(hashlib.pbkdf2_hmac("sha256", password.encode(), self.salt, 200_000), self.hash)
+
+    def throttled(self, ip):
+        """True while an address is locked out after too many wrong passwords."""
+        with self.lock:
+            count, last = self.failures.get(ip, (0, 0))
+            if count >= 5 and time.time() - last < 300:
+                return True
+            if time.time() - last >= 300:
+                self.failures.pop(ip, None)
+            return False
+
+    def failed(self, ip):
+        with self.lock:
+            count, _ = self.failures.get(ip, (0, 0))
+            self.failures[ip] = (count + 1, time.time())
+
+    def succeeded(self, ip):
+        with self.lock:
+            self.failures.pop(ip, None)
 
     def login(self):
         token = secrets.token_urlsafe(32)
@@ -272,6 +293,7 @@ class Handler(BaseHTTPRequestHandler):
     auth: Auth = None
     files: Files = None
     page: bytes = b""
+    tls: bool = False
 
     def log_message(self, fmt, *args):
         if "/api/log" not in (args[0] if args else ""):
@@ -368,16 +390,23 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if url.path == "/api/login":
                 data = self.json_body()
+                ip = self.client_address[0]
+                if self.auth.throttled(ip):
+                    self.send_json({"error": "too many attempts, wait 5 minutes"}, 429)
+                    return
                 time.sleep(0.3)  # slow down guessing
                 if self.auth.check(str(data.get("password", ""))):
+                    self.auth.succeeded(ip)
                     token = self.auth.login()
                     self.send_response(200)
-                    self.send_header("Set-Cookie", f"panel={token}; HttpOnly; SameSite=Strict; Path=/")
+                    secure = "; Secure" if self.tls else ""
+                    self.send_header("Set-Cookie", f"panel={token}; HttpOnly; SameSite=Strict; Path=/{secure}")
                     self.send_header("Content-Type", "application/json")
                     self.send_header("Content-Length", "15")
                     self.end_headers()
                     self.wfile.write(b'{"authed":true}')
                 else:
+                    self.auth.failed(ip)
                     self.send_json({"error": "wrong password"}, 401)
                 return
             if not self.authed():
@@ -421,6 +450,7 @@ def main():
     ap.add_argument("--bind", default="127.0.0.1:8080", help="address:port to listen on")
     ap.add_argument("--set-password", action="store_true", help="change the panel password and exit")
     ap.add_argument("--autostart", action="store_true", help="start the server when the panel starts")
+    ap.add_argument("--tls", action="store_true", help="serve HTTPS with a self-signed certificate (created in the server folder)")
     args = ap.parse_args()
 
     server_dir = os.path.realpath(args.server)
@@ -451,6 +481,22 @@ def main():
     host, _, port = args.bind.rpartition(":")
     httpd = ThreadingHTTPServer((host or "127.0.0.1", int(port)), Handler)
     httpd.daemon_threads = True
+    scheme = "http"
+    if args.tls:
+        cert = os.path.join(server_dir, ".panel-cert.pem")
+        key = os.path.join(server_dir, ".panel-key.pem")
+        if not (os.path.exists(cert) and os.path.exists(key)):
+            if shutil.which("openssl") is None:
+                sys.exit("--tls needs the openssl command to create a certificate (apt install openssl)")
+            subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650", "-subj", "/CN=serverjar-panel",
+                            "-keyout", key, "-out", cert], check=True, capture_output=True)
+            os.chmod(key, 0o600)
+            print(f"created self-signed certificate {cert}")
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(cert, key)
+        httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+        Handler.tls = True
+        scheme = "https"
 
     def shutdown(*_):
         print("\nstopping server...")
@@ -459,9 +505,9 @@ def main():
 
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
-    print(f"panel on http://{args.bind}  (server folder: {server_dir})")
-    if not host.startswith("127.") and host not in ("localhost", ""):
-        print("WARNING: listening on a public address without HTTPS; use an SSH tunnel or a reverse proxy.")
+    print(f"panel on {scheme}://{args.bind}  (server folder: {server_dir})")
+    if not args.tls and not host.startswith("127.") and host not in ("localhost", ""):
+        print("WARNING: listening on a public address without --tls; the password travels unencrypted.")
     httpd.serve_forever()
 
 

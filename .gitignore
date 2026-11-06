@@ -23,3 +23,7 @@
 /via/run/
 /via/plugin/build/
 /via/PumpkinForward.jar
+
+# Plugin build output
+/plugins/multiversion/target/
+/plugins/multiversion/multiversion.wasm

@@ -76,6 +76,7 @@ jobs:
           cp server/pumpkin server/pumpkin.toml server/start.sh server/pumpkin.service bundle/ServerJar/
           mkdir -p bundle/ServerJar/plugins/multiversion
           cp plugins/multiversion/multiversion.wasm plugins/multiversion/install.sh plugins/multiversion/README.md bundle/ServerJar/plugins/multiversion/
+          mkdir -p bundle/ServerJar/panel && cp panel/panel.py panel/panel.html panel/panel.service panel/README.md bundle/ServerJar/panel/
           chmod +x bundle/ServerJar/pumpkin bundle/ServerJar/start.sh bundle/ServerJar/plugins/multiversion/install.sh
           tar -C bundle -czf "dist/ServerJar-${{ matrix.name }}.tar.gz" ServerJar
 
@@ -88,6 +89,8 @@ jobs:
           Copy-Item server/pumpkin.exe, server/pumpkin.toml, server/start.bat bundle/ServerJar/
           New-Item -ItemType Directory -Force bundle/ServerJar/plugins/multiversion | Out-Null
           Copy-Item plugins/multiversion/multiversion.wasm, plugins/multiversion/README.md bundle/ServerJar/plugins/multiversion/
+          New-Item -ItemType Directory -Force bundle/ServerJar/panel | Out-Null
+          Copy-Item panel/panel.py, panel/panel.html, panel/README.md bundle/ServerJar/panel/
           Compress-Archive -Path bundle/ServerJar -DestinationPath "dist/ServerJar-${{ matrix.name }}.zip"
 
       - uses: actions/upload-artifact@v4
@@ -123,7 +126,7 @@ jobs:
           | File | For |
           |---|---|
           | \`pumpkin-linux-x86_64\` | Linux x86-64 (Ubuntu 22.04+, Debian 12+). Just the server binary. |
-          | \`ServerJar-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit. |
+          | \`ServerJar-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + multiversion plugin. |
           | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
           | \`ServerJar-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
           | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |

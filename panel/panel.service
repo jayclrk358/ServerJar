@@ -1,0 +1,19 @@
+# systemd unit for the ServerJar panel. The panel starts and stops Pumpkin itself, so do not run
+# pumpkin.service at the same time. Edit User and the paths, then:
+#   sudo cp panel.service /etc/systemd/system/ && sudo systemctl enable --now panel
+# Set the password once beforehand: python3 panel/panel.py --server ~/mc --set-password
+[Unit]
+Description=ServerJar web panel (starts Pumpkin)
+After=network.target
+
+[Service]
+User=minecraft
+WorkingDirectory=/home/minecraft/mc
+ExecStart=/usr/bin/python3 /home/minecraft/mc/panel/panel.py --server /home/minecraft/mc --bind 127.0.0.1:8080 --autostart
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

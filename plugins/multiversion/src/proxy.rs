@@ -210,7 +210,17 @@ pub fn run(config: Config) -> Result<(), String> {
     let backend_addr = resolve(&config.backend.address)?;
     let keys = ServerKeys::generate()?;
     let mut reactor = Reactor::new();
-    reactor.listen(listen, 128)?;
+    if let Err(e) = reactor.listen(listen, 128) {
+        if e.contains("address-in-use") || e.contains("AddressInUse") {
+            return Err(format!(
+                "port {} is taken, most likely by Pumpkin itself. In pumpkin.toml set [networking.java] address = \"{}\" \
+                 (see plugins/data/multiversion/pumpkin-settings.txt) and restart.",
+                listen.port(),
+                config.backend.address
+            ));
+        }
+        return Err(e);
+    }
     log::info(&format!("accepting connections on {listen}"));
     let mut handler = ProxyHandler {
         config,

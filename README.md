@@ -14,8 +14,8 @@ This repo adds performance patches and a tuned low-resource config on top of it.
 | 100 walking players | – | 20 TPS, ~1.7 cores, ~600 MB peak |
 
 Target: **Minecraft Java 26.3** (protocol 777). Other client versions can join through the
-[`multiversion` plugin](plugins/multiversion/README.md) (native, 26.2 so far) or the Java-based
-[ViaProxy setup](via/README.md) (1.7.2 … 26.3). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
+[`multiversion` plugin](plugins/multiversion/README.md) (26.2 so far, more versions as translators
+are added). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 
 ## What's in here
 
@@ -26,9 +26,8 @@ Target: **Minecraft Java 26.3** (protocol 777). Other client versions can join t
 | `server/pumpkin.toml` | Low-resource config (see below). |
 | `server/start.bat` / `start.sh` | Starts the server. |
 | `server/pumpkin.service` | systemd unit for Linux. |
-| `plugins/multiversion/` | **Pumpkin plugin** (WebAssembly, Rust) that lets other Minecraft versions join: an in-process protocol-translating proxy with Mojang auth and identity forwarding. Installed by `install.sh`, configured by one `config.toml`. See [`plugins/multiversion/README.md`](plugins/multiversion/README.md). |
-| `via/` | Alternative: ViaProxy (Java) in front of Pumpkin plus the `PumpkinForward` plugin that keeps real UUIDs, skins and IPs. Covers 1.7.2 … 26.3. See [`via/README.md`](via/README.md). |
-| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads (and the `PumpkinForward.jar` plugin) on GitHub. |
+| `plugins/multiversion/` | **Pumpkin plugin** (WebAssembly, Rust) that lets other Minecraft versions join: an in-process protocol-translating proxy with Mojang auth and identity forwarding. Drop in `multiversion.wasm`, apply the three `pumpkin.toml` settings it writes out, done. See [`plugins/multiversion/README.md`](plugins/multiversion/README.md). |
+| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads and `multiversion.wasm` on GitHub. |
 
 ## Download (no build needed)
 
@@ -91,24 +90,20 @@ The Linux scripts haven't been tested on a real Linux machine yet.
 
 ## Letting other Minecraft versions join
 
-Pumpkin only speaks 26.3. Two options:
-
-**Option A: the `multiversion` plugin (no Java).** A Pumpkin plugin that runs a protocol-translating
-proxy inside the server process. It listens on the public port, speaks the client's own version,
-verifies the player with Mojang, logs into Pumpkin on a localhost port and forwards the real UUID,
-skin and IP with a signed Velocity handshake. Supported today: 26.3 (native) and 26.2 (translated);
-older versions are added one translator at a time.
+Pumpkin only speaks 26.3. The `multiversion` plugin handles the rest by itself: it listens on the
+public port, speaks the client's own version, verifies the player with Mojang, logs into Pumpkin on a
+localhost port and forwards the real UUID, skin and IP with a signed Velocity handshake. Supported
+today: 26.3 (native) and 26.2 (translated); older versions are added one translator at a time.
 
 ```bash
-./plugins/multiversion/install.sh     # installs the plugin, writes its config, edits pumpkin.toml
-./server/start.sh                      # players connect to 25565 as before
+cp multiversion.wasm server/plugins/      # from the release, or ./plugins/multiversion/build.sh
+./server/start.sh                          # first start writes plugins/data/multiversion/config.toml and
+                                           # pumpkin-settings.txt: paste those settings into pumpkin.toml
+                                           # (moves Pumpkin to 127.0.0.1:25566), then restart
 ```
 
-**Option B: ViaProxy (Java 17+).** Covers every client from 1.7.2 to 26.3 today, at the cost of a
-JVM process. `./via/setup.sh` sets it up together with the `PumpkinForward` plugin so identities are
-preserved. Details in [`via/README.md`](via/README.md).
-
-Both move Pumpkin to `127.0.0.1:25566`; only the public port needs to be open.
+`./plugins/multiversion/install.sh` does the copy and the `pumpkin.toml` edit for you if you prefer.
+Players connect to 25565 as before; only that port needs to be open.
 
 ## Patches
 

@@ -40,26 +40,25 @@ player (26.2) ──► plugin listener :25565 ──► translator chain ──
 
 ## Install
 
-Requirements: this repo's Pumpkin build (26.3) and Python 3 for the config edit. No Java.
+Requirements: this repo's Pumpkin build (26.3). Nothing else: no Java, no proxy, no extra process.
 
-```bash
-./plugins/multiversion/install.sh          # from the repo root; uses a release wasm or builds one
-./server/start.sh
-```
+1. Copy `multiversion.wasm` (from a release, or built with `build.sh`) into `server/plugins/`.
+2. Start the server once. The plugin writes `server/plugins/data/multiversion/config.toml` with a
+   fresh forwarding secret, and `pumpkin-settings.txt` next to it with the three `pumpkin.toml`
+   settings it needs (Pumpkin only lets plugins write their own data folder, so this edit is the
+   one thing it cannot do itself):
+   - `networking.java.address = "127.0.0.1:25566"`: Pumpkin moves to a localhost port and the
+     plugin takes over 25565;
+   - `networking.proxy.enabled = true` and `networking.proxy.velocity` enabled with the secret:
+     Pumpkin accepts the signed identity the plugin forwards;
+   - `plugins.enabled = true` with the plugin's permissions pre-approved.
+   Paste them into `pumpkin.toml` and restart. If you skip this, the plugin tells you on the console
+   exactly which setting is missing (port still held by Pumpkin, or forwarding not enabled).
+3. Players keep connecting to port 25565. Keep 25566 closed in the firewall.
 
-`install.sh`:
-
-- copies `multiversion.wasm` to `server/plugins/`,
-- writes `server/plugins/data/multiversion/config.toml` with a fresh forwarding secret,
-- edits `server/pumpkin.toml`: plugins enabled, the plugin's permissions pre-approved, Pumpkin
-  bound to `127.0.0.1:25566` in offline mode, Velocity forwarding on with the same secret (a copy
-  of the old file is kept as `pumpkin.toml.before-multiversion`).
-
-Players keep connecting to port 25565. Keep 25566 closed in the firewall: the plugin is the only
-thing that should talk to it. Re-running `install.sh` keeps the existing secret.
-
-Manual install: do those three steps by hand. The plugin writes a default `config.toml` on first
-start if none exists; copy its `forwarding_secret` into `networking.proxy.velocity.secret`.
+`install.sh` is an optional shortcut that does steps 1 and 2 (it needs Python 3 for the toml edit).
+`online_mode` in `pumpkin.toml` can stay `true`: with forwarding enabled, Pumpkin trusts the
+plugin's signed profile instead of asking Mojang itself.
 
 ### Permissions
 

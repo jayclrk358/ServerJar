@@ -12,34 +12,6 @@ permissions:
   contents: write
 
 jobs:
-  # ViaProxy plugin that forwards real player identities to Pumpkin (see via/README.md).
-  plugin:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Build PumpkinForward.jar
-        run: ./via/plugin/build.sh
-
-      - name: Check the forwarding packet against Pumpkin's format
-        run: |
-          javac -proc:none --release 17 -cp via/plugin/build/ViaProxy-*.jar:via/plugin/build/classes \
-            -d via/plugin/build/test-classes via/plugin/src/test/java/serverjar/pumpkinforward/EncodeDump.java
-          java -cp via/plugin/build/ViaProxy-*.jar:via/plugin/build/classes:via/plugin/build/test-classes \
-            serverjar.pumpkinforward.EncodeDump | python3 via/plugin/src/test/check.py
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: plugin
-          path: via/plugin/build/PumpkinForward.jar
-          if-no-files-found: error
-
   # Pumpkin plugin (WebAssembly) that lets other client versions join (see plugins/multiversion/README.md).
   multiversion:
     runs-on: ubuntu-latest
@@ -63,7 +35,7 @@ jobs:
           if-no-files-found: error
 
   build:
-    needs: plugin
+    needs: multiversion
     strategy:
       fail-fast: false
       matrix:
@@ -83,8 +55,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: plugin
-          path: via
+          name: multiversion
+          path: plugins/multiversion
 
       # x86-64-v3 (AVX2, ~2015+ CPUs) is fast and runs on practically every server CPU.
       - name: Build (Linux)
@@ -102,10 +74,9 @@ jobs:
           mkdir -p dist bundle/ServerJar
           cp server/pumpkin "dist/pumpkin-${{ matrix.name }}"
           cp server/pumpkin server/pumpkin.toml server/start.sh server/pumpkin.service bundle/ServerJar/
-          mkdir -p bundle/ServerJar/via
-          cp via/setup.sh via/start-via.sh via/viaproxy.yml via/viaproxy.env via/viaproxy.service \
-             via/patch-pumpkin-toml.py via/README.md via/PumpkinForward.jar bundle/ServerJar/via/
-          chmod +x bundle/ServerJar/pumpkin bundle/ServerJar/start.sh bundle/ServerJar/via/setup.sh bundle/ServerJar/via/start-via.sh
+          mkdir -p bundle/ServerJar/plugins/multiversion
+          cp plugins/multiversion/multiversion.wasm plugins/multiversion/install.sh plugins/multiversion/README.md bundle/ServerJar/plugins/multiversion/
+          chmod +x bundle/ServerJar/pumpkin bundle/ServerJar/start.sh bundle/ServerJar/plugins/multiversion/install.sh
           tar -C bundle -czf "dist/ServerJar-${{ matrix.name }}.tar.gz" ServerJar
 
       - name: Package (Windows)
@@ -115,8 +86,8 @@ jobs:
           New-Item -ItemType Directory -Force dist, bundle/ServerJar | Out-Null
           Copy-Item server/pumpkin.exe "dist/pumpkin-${{ matrix.name }}.exe"
           Copy-Item server/pumpkin.exe, server/pumpkin.toml, server/start.bat bundle/ServerJar/
-          New-Item -ItemType Directory -Force bundle/ServerJar/via | Out-Null
-          Copy-Item via/setup.ps1, via/start-via.bat, via/viaproxy.yml, via/viaproxy.env, via/README.md, via/PumpkinForward.jar bundle/ServerJar/via/
+          New-Item -ItemType Directory -Force bundle/ServerJar/plugins/multiversion | Out-Null
+          Copy-Item plugins/multiversion/multiversion.wasm, plugins/multiversion/README.md bundle/ServerJar/plugins/multiversion/
           Compress-Archive -Path bundle/ServerJar -DestinationPath "dist/ServerJar-${{ matrix.name }}.zip"
 
       - uses: actions/upload-artifact@v4
@@ -136,7 +107,7 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-          # the plugin artifact is one file, so it lands as dist/PumpkinForward.jar
+          # the multiversion artifact is one file, so it lands as dist/multiversion.wasm
 
       - name: Publish release
         env:
@@ -155,8 +126,7 @@ jobs:
           | \`ServerJar-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit. |
           | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
           | \`ServerJar-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
-          | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Install with \`plugins/multiversion/install.sh\`. |
-          | \`PumpkinForward.jar\` | ViaProxy plugin for the Java-based alternative (1.7.2–26.3 clients). Also inside both bundles under \`via/\`; run \`via/setup.sh\` or \`via\\setup.ps1\`. |
+          | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |
 
           Built for x86-64-v3 CPUs (AVX2, roughly 2015 or newer).
           Pumpkin commit \`$commit\` with these patches:

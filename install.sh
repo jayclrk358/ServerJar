@@ -45,7 +45,7 @@ id "$MC_USER" >/dev/null 2>&1 || useradd --system --create-home --home-dir "$MC_
 mkdir -p "$MC_DIR"
 say "Downloading the latest ServerJar release"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-curl -fsSL --retry 5 -o "$TMP/bundle.tar.gz" "$BUNDLE_URL" || die "download failed: $BUNDLE_URL"
+curl -fsSL --retry 5 --max-time 600 -o "$TMP/bundle.tar.gz" "$BUNDLE_URL" || die "download failed: $BUNDLE_URL"
 tar -xzf "$TMP/bundle.tar.gz" -C "$TMP"
 B="$TMP/ServerJar"
 [[ -x "$B/pumpkin" ]] || die "bundle has no pumpkin binary"
@@ -55,10 +55,29 @@ install -m 755 "$B/pumpkin" "$MC_DIR/pumpkin"
 install -m 755 "$B/start.sh" "$MC_DIR/start.sh"
 [[ -f "$MC_DIR/pumpkin.toml" ]] || install -m 644 "$B/pumpkin.toml" "$MC_DIR/pumpkin.toml"
 mkdir -p "$MC_DIR/panel" "$MC_DIR/plugins/data/multiversion"
-if [[ -d "$B/panel" ]]; then install -m 644 "$B/panel/panel.py" "$B/panel/panel.html" "$MC_DIR/panel/"; fi
-if [[ -f "$B/plugins/multiversion/multiversion.wasm" ]]; then install -m 644 "$B/plugins/multiversion/multiversion.wasm" "$MC_DIR/plugins/multiversion.wasm"; fi
+RAW="https://raw.githubusercontent.com/$REPO/${MC_BRANCH:-main}"
+# Panel: take it from the bundle, else straight from the repository (it is two plain files).
+if [[ -d "$B/panel" ]]; then
+  install -m 644 "$B/panel/panel.py" "$B/panel/panel.html" "$MC_DIR/panel/"
+else
+  say "Fetching the web panel from the repository"
+  curl -fsSL --retry 3 -o "$MC_DIR/panel/panel.py" "$RAW/panel/panel.py" || die "could not download panel.py"
+  curl -fsSL --retry 3 -o "$MC_DIR/panel/panel.html" "$RAW/panel/panel.html" || die "could not download panel.html"
+fi
+# Plugin: from the bundle, else the release asset; without it the server still runs, just 26.3-only.
+HAVE_PLUGIN=0
+if [[ -f "$B/plugins/multiversion/multiversion.wasm" ]]; then
+  install -m 644 "$B/plugins/multiversion/multiversion.wasm" "$MC_DIR/plugins/multiversion.wasm"; HAVE_PLUGIN=1
+elif curl -fsSL --retry 3 --max-time 120 -o "$TMP/multiversion.wasm" "https://github.com/$REPO/releases/latest/download/multiversion.wasm" 2>/dev/null; then
+  install -m 644 "$TMP/multiversion.wasm" "$MC_DIR/plugins/multiversion.wasm"; HAVE_PLUGIN=1
+elif [[ -f "$MC_DIR/plugins/multiversion.wasm" ]]; then
+  HAVE_PLUGIN=1
+else
+  say "No multiversion.wasm in this release yet: the server will accept 26.3 clients only. Re-run 'mc update' after the next release."
+fi
 
 # 3. plugin + pumpkin.toml ------------------------------------------------------------------------
+if [[ "$HAVE_PLUGIN" == "1" ]]; then
 CFG="$MC_DIR/plugins/data/multiversion/config.toml"
 if [[ -f "$CFG" ]]; then
   SECRET="$(python3 -c 'import re,sys; m=re.search(r"^forwarding_secret\s*=\s*\"([^\"]*)\"", open(sys.argv[1]).read(), re.M); print(m.group(1) if m else "")' "$CFG")"
@@ -109,6 +128,23 @@ for name, keys in wanted.items():
         text += f"\n\n[{name}]\n" + "\n".join(f"{k} = {v}" for k, v in keys.items())
 open(path, "w", encoding="utf-8", newline="\n").write(text.rstrip("\n") + "\n")
 PY
+else
+  # No plugin: Pumpkin itself answers on the public port.
+  say "Configuring pumpkin.toml"
+  python3 - "$MC_DIR/pumpkin.toml" "$MC_PORT" <<'PY'
+import re, sys
+path, port = sys.argv[1], sys.argv[2]
+lines = open(path, encoding="utf-8").read().split("\n")
+out, section = [], None
+for line in lines:
+    h = re.match(r"^\s*\[([^\]]+)\]\s*$", line)
+    if h: section = h.group(1).strip()
+    if section == "networking.java" and re.match(r"^\s*address\s*=", line): line = f'address = "0.0.0.0:{port}"'
+    if section == "commands" and re.match(r"^\s*use_tty\s*=", line): line = "use_tty = false"
+    out.append(line)
+open(path, "w", encoding="utf-8", newline="\n").write("\n".join(out))
+PY
+fi
 
 # 4. panel service ----------------------------------------------------------------------------------
 if [[ ! -f "$MC_DIR/.panel-auth.json" ]]; then
@@ -174,7 +210,7 @@ case "${1:-help}" in
   status) systemctl status minecraft --no-pager | sed -n 1,6p; echo; ss -ltnp 2>/dev/null | grep -E ':25565|:25566|:8080' || true ;;
   logs) journalctl -u minecraft -f -n 50 ;;
   console) echo "Open the web panel for the live console: mc panel"; journalctl -u minecraft -f -n 30 ;;
-  panel) ip=$(curl -4 -fsS https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
+  panel) ip=$(curl -4 -fsS --max-time 5 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
          echo "Panel: from your PC run   ssh -L 8080:127.0.0.1:8080 root@$ip   then open http://localhost:8080"
          echo "Password: set during install; change with   sudo -u minecraft python3 $MC_DIR/panel/panel.py --server $MC_DIR --set-password" ;;
   config) ${EDITOR:-nano} "$MC_DIR/pumpkin.toml" && echo "restart to apply: mc restart" ;;
@@ -185,10 +221,14 @@ MC
 chmod 755 /usr/local/bin/mc
 
 # done ----------------------------------------------------------------------------------------------
-IP="$(curl -4 -fsS https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')"
+IP="$(curl -4 -fsS --max-time 5 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')"
 echo
 say "Done. Your server is starting."
-echo "   Players connect to:   $IP:$MC_PORT   (Minecraft 26.3; 26.2 via the multiversion plugin)"
+if [[ "$HAVE_PLUGIN" == "1" ]]; then
+  echo "   Players connect to:   $IP:$MC_PORT   (Minecraft 26.3; 26.2 via the multiversion plugin)"
+else
+  echo "   Players connect to:   $IP:$MC_PORT   (Minecraft 26.3)"
+fi
 if [[ "${PANEL_PUBLIC:-0}" == "1" ]]; then
   echo "   Web panel:            http://$IP:$PANEL_PORT   (put HTTPS in front before using it from afar)"
 else

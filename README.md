@@ -21,6 +21,7 @@ are added). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 
 | Path | What it is |
 |---|---|
+| `install.sh` | One-command VPS setup: packages, release download, plugin, panel service, firewall, `mc` command. |
 | `build.ps1` / `build.sh` | Windows / Linux build: clones Pumpkin at a pinned commit, applies `patches/`, downloads the vanilla jar for game data, builds. |
 | `patches/` | Our changes to Pumpkin, applied in order. |
 | `server/pumpkin.toml` | Low-resource config (see below). |
@@ -30,10 +31,35 @@ are added). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 | `panel/` | Web panel to start/stop/restart the server, watch the console, send commands and edit files. Python standard library only; see [`panel/README.md`](panel/README.md). |
 | `.github/workflows/release.yml` | Builds the Linux and Windows release downloads and `multiversion.wasm` on GitHub. |
 
+## Quick start on a Linux VPS (one command)
+
+On a fresh Ubuntu 22.04+/Debian 12+ x86-64 server, as root:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jayclrk358/ServerJar/main/install.sh | sudo bash
+```
+
+It asks for a panel password and does everything else: installs the few packages needed, downloads
+the latest release into `/opt/minecraft`, installs the `multiversion` plugin and wires `pumpkin.toml`
+for it, sets up the web panel as a service that starts the server at boot, and opens the game port in
+the firewall. At the end it prints the address players connect to. Afterwards:
+
+| Command | Does |
+|---|---|
+| `mc status` / `mc logs` | is it running, live log |
+| `mc restart` / `mc stop` / `mc start` | control the server |
+| `mc config` | edit `pumpkin.toml`, then `mc restart` |
+| `mc panel` | how to open the web panel (console, commands, file editor) |
+| `mc update` | re-run the installer: new server, plugin and panel; config and world kept |
+
+Re-running the installer is always safe. Options such as another folder, port or a public panel are
+environment variables documented at the top of [`install.sh`](install.sh).
+
 ## Download (no build needed)
 
-Ready-made servers are on the [Releases](https://github.com/jayclrk358/ServerJar/releases) page.
-It's one file, like a server jar but without needing Java.
+If you'd rather set things up by hand, ready-made servers are on the
+[Releases](https://github.com/jayclrk358/ServerJar/releases) page. It's one file, like a server jar
+but without needing Java.
 
 **Linux VPS** (x86-64, Ubuntu 22.04+ / Debian 12+):
 

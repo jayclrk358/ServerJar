@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ServerJar Panel</title>
+<style>
+  :root { --bg:#0f1115; --panel:#171a21; --line:#262b36; --text:#e6e8ee; --muted:#8b93a7; --accent:#f28c28; --green:#3ec46d; --red:#e5534b; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  header { display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:2; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0 8px 0 0; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--red); display:inline-block; }
+  .dot.on { background:var(--green); }
+  .meta { color:var(--muted); font-size:13px; }
+  button { background:#232834; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#111; border-color:var(--accent); font-weight:600; }
+  button.danger { color:var(--red); }
+  button:disabled { opacity:.45; cursor:default; }
+  .spacer { flex:1; }
+  nav { display:flex; gap:4px; padding:8px 16px 0; border-bottom:1px solid var(--line); }
+  nav button { border-radius:6px 6px 0 0; border-bottom:none; }
+  nav button.active { background:var(--panel); border-color:var(--line); color:var(--accent); }
+  main { padding:16px; max-width:1400px; margin:0 auto; }
+  .view { display:none; } .view.active { display:block; }
+  #log { background:#0b0d11; border:1px solid var(--line); border-radius:8px; padding:10px; height:60vh; overflow:auto; font:12.5px/1.5 var(--mono); white-space:pre-wrap; word-break:break-all; }
+  .row { display:flex; gap:8px; margin-top:8px; }
+  input, textarea, select { background:#0b0d11; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:8px; font:inherit; }
+  input { flex:1; }
+  textarea { width:100%; height:65vh; font:13px/1.5 var(--mono); resize:vertical; tab-size:2; }
+  .files { display:grid; grid-template-columns: minmax(260px, 1fr) 2fr; gap:16px; }
+  @media (max-width: 900px) { .files { grid-template-columns:1fr; } }
+  .list { border:1px solid var(--line); border-radius:8px; background:var(--panel); overflow:hidden; }
+  .crumbs { padding:8px 10px; border-bottom:1px solid var(--line); color:var(--muted); font-size:13px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .crumbs a { color:var(--accent); cursor:pointer; }
+  .entry { display:flex; align-items:center; gap:8px; padding:7px 10px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .entry:hover { background:#1d212b; }
+  .entry .name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .entry .size, .entry .time { color:var(--muted); font-size:12px; font-variant-numeric: tabular-nums; white-space:nowrap; }
+  .entry .time { display:none; } @media (min-width: 1100px) { .entry .time { display:inline; } }
+  .entry .act { opacity:0; display:flex; gap:4px; } .entry:hover .act { opacity:1; }
+  .entry .act button { padding:2px 6px; font-size:12px; }
+  .editor-head { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .editor-head .path { font:13px var(--mono); color:var(--muted); flex:1; }
+  .toast { position:fixed; bottom:16px; right:16px; background:#232834; border:1px solid var(--line); padding:10px 14px; border-radius:8px; max-width:420px; display:none; }
+  .toast.err { border-color:var(--red); }
+  #login { max-width:360px; margin:12vh auto; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:24px; }
+  #login h2 { margin-top:0; }
+  .hint { color:var(--muted); font-size:12.5px; margin-top:10px; }
+  .toolbar { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<div id="login" style="display:none">
+  <h2>ServerJar Panel</h2>
+  <form id="loginForm" class="row" style="margin:0">
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" autofocus>
+    <button class="primary">Sign in</button>
+  </form>
+  <p class="hint">Set or change the password with <code>python3 panel.py --set-password</code>.</p>
+</div>
+
+<div id="app" style="display:none">
+<header>
+  <h1>ServerJar</h1>
+  <span class="dot" id="dot"></span><span id="state">stopped</span>
+  <span class="meta" id="meta"></span>
+  <span class="spacer"></span>
+  <button class="primary" id="btnStart">Start</button>
+  <button id="btnRestart">Restart</button>
+  <button class="danger" id="btnStop">Stop</button>
+  <button class="danger" id="btnKill" title="Force kill (no save)">Kill</button>
+  <button id="btnLogout">Sign out</button>
+</header>
+<nav>
+  <button class="active" data-view="console">Console</button>
+  <button data-view="files">Files</button>
+</nav>
+<main>
+  <section id="console" class="view active">
+    <div id="log"></div>
+    <form id="cmdForm" class="row">
+      <input id="cmd" placeholder="Server command, e.g. say hello  ·  op Name  ·  stop" autocomplete="off">
+      <button>Send</button>
+    </form>
+  </section>
+  <section id="files" class="view">
+    <div class="files">
+      <div>
+        <div class="toolbar">
+          <button id="btnNewFile">New file</button>
+          <button id="btnNewFolder">New folder</button>
+          <button id="btnUpload">Upload</button>
+          <input id="uploadInput" type="file" multiple style="display:none">
+          <button id="btnRefresh">Refresh</button>
+        </div>
+        <div class="list">
+          <div class="crumbs" id="crumbs"></div>
+          <div id="entries"></div>
+        </div>
+        <p class="hint">Everything here is inside the server folder. The world folder is large: edit configs, not region files.</p>
+      </div>
+      <div>
+        <div class="editor-head">
+          <span class="path" id="editPath">Select a text file to edit</span>
+          <button id="btnSave" class="primary" disabled>Save</button>
+          <button id="btnDownload" disabled>Download</button>
+        </div>
+        <textarea id="editor" spellcheck="false" disabled></textarea>
+        <p class="hint">Changes to <code>pumpkin.toml</code> apply after a restart.</p>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const headers = { 'Content-Type': 'application/json', 'X-Requested-With': 'panel' };
+let logSeq = 0, polling = false, cwd = '', openFile = null;
+
+function toast(msg, err) { const t = $('#toast'); t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 3500); }
+async function api(path, opts) {
+  const r = await fetch(path, Object.assign({ headers }, opts));
+  if (r.status === 401) { showLogin(); throw new Error('signed out'); }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) });
+
+function showLogin() { $('#login').style.display = 'block'; $('#app').style.display = 'none'; polling = false; }
+function showApp() { $('#login').style.display = 'none'; $('#app').style.display = 'block'; if (!polling) { polling = true; pollLog(); } refreshStatus(); listFiles(''); }
+
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  try { await post('/api/login', { password: $('#password').value }); $('#password').value = ''; showApp(); }
+  catch (err) { toast(err.message, true); }
+};
+$('#btnLogout').onclick = async () => { await post('/api/logout'); showLogin(); };
+
+function fmtUptime(s) { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h}h ${m}m` : `${m}m ${s % 60}s`; }
+function fmtSize(b) { return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : b < 1073741824 ? (b / 1048576).toFixed(1) + ' MB' : (b / 1073741824).toFixed(2) + ' GB'; }
+function renderStatus(s) {
+  $('#dot').className = 'dot' + (s.running ? ' on' : '');
+  $('#state').textContent = s.running ? 'running' : 'stopped';
+  $('#meta').textContent = s.running ? `pid ${s.pid} · up ${fmtUptime(s.uptime)}${s.memory ? ' · ' + fmtSize(s.memory) : ''}` : '';
+  $('#btnStart').disabled = s.running; $('#btnStop').disabled = !s.running; $('#btnKill').disabled = !s.running;
+}
+async function refreshStatus() { try { renderStatus(await api('/api/status')); } catch (e) {} }
+for (const a of ['start', 'stop', 'restart', 'kill']) {
+  $('#btn' + a[0].toUpperCase() + a.slice(1)).onclick = async () => {
+    if (a === 'kill' && !confirm('Kill the server without saving?')) return;
+    try { const r = await post('/api/' + a); toast(r.result); renderStatus(r.status); } catch (e) { toast(e.message, true); }
+  };
+}
+setInterval(refreshStatus, 5000);
+
+async function pollLog() {
+  while (polling) {
+    try {
+      const r = await api(`/api/log?since=${logSeq}&wait=1`);
+      if (r.lines.length) {
+        const log = $('#log'); const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
+        for (const [seq, line] of r.lines) { logSeq = seq; const d = document.createElement('div'); d.textContent = line; log.appendChild(d); }
+        while (log.childElementCount > 2000) log.removeChild(log.firstChild);
+        if (atBottom) log.scrollTop = log.scrollHeight;
+      }
+    } catch (e) { if (e.message === 'signed out') return; await new Promise(r => setTimeout(r, 2000)); }
+  }
+}
+$('#cmdForm').onsubmit = async e => {
+  e.preventDefault(); const c = $('#cmd').value.trim(); if (!c) return;
+  try { const r = await post('/api/command', { command: c }); if (r.result !== 'sent') toast(r.result, true); $('#cmd').value = ''; } catch (err) { toast(err.message, true); }
+};
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === b.dataset.view));
+});
+
+async function listFiles(path) {
+  try {
+    const r = await api('/api/files?path=' + encodeURIComponent(path)); cwd = r.path;
+    const crumbs = $('#crumbs'); crumbs.innerHTML = '';
+    const root = document.createElement('a'); root.textContent = 'server'; root.onclick = () => listFiles(''); crumbs.appendChild(root);
+    let acc = '';
+    for (const part of cwd.split('/').filter(Boolean)) { acc += (acc ? '/' : '') + part; const p = acc; crumbs.append(' / '); const a = document.createElement('a'); a.textContent = part; a.onclick = () => listFiles(p); crumbs.appendChild(a); }
+    const list = $('#entries'); list.innerHTML = '';
+    if (cwd) { const up = document.createElement('div'); up.className = 'entry'; up.innerHTML = '<span class="name">..</span>'; up.onclick = () => listFiles(cwd.split('/').slice(0, -1).join('/')); list.appendChild(up); }
+    for (const e of r.entries) {
+      const full = (cwd ? cwd + '/' : '') + e.name;
+      const d = document.createElement('div'); d.className = 'entry';
+      d.innerHTML = `<span>${e.dir ? '📁' : e.text ? '📝' : '📄'}</span><span class="name"></span><span class="size">${e.dir ? '' : fmtSize(e.size)}</span><span class="time">${new Date(e.mtime * 1000).toLocaleString()}</span><span class="act"></span>`;
+      d.querySelector('.name').textContent = e.name;
+      const act = d.querySelector('.act');
+      const mk = (label, fn, cls) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = ev => { ev.stopPropagation(); fn(); }; act.appendChild(b); };
+      mk('Rename', async () => { const n = prompt('New name', e.name); if (n && n !== e.name) { try { await post('/api/rename', { path: full, new_path: (cwd ? cwd + '/' : '') + n }); listFiles(cwd); } catch (err) { toast(err.message, true); } } });
+      mk('Delete', async () => { if (confirm(`Delete ${e.name}${e.dir ? ' and everything in it' : ''}?`)) { try { await post('/api/delete', { path: full }); if (openFile === full) closeEditor(); listFiles(cwd); } catch (err) { toast(err.message, true); } } }, 'danger');
+      d.onclick = () => e.dir ? listFiles(full) : e.text ? openEditor(full) : (location.href = '/api/download?path=' + encodeURIComponent(full));
+      list.appendChild(d);
+    }
+  } catch (e) { toast(e.message, true); }
+}
+function closeEditor() { openFile = null; $('#editor').value = ''; $('#editor').disabled = true; $('#btnSave').disabled = true; $('#btnDownload').disabled = true; $('#editPath').textContent = 'Select a text file to edit'; }
+async function openEditor(path) {
+  try { const r = await api('/api/file?path=' + encodeURIComponent(path)); openFile = path; $('#editor').value = r.content; $('#editor').disabled = false; $('#btnSave').disabled = false; $('#btnDownload').disabled = false; $('#editPath').textContent = path; }
+  catch (e) { toast(e.message, true); }
+}
+$('#btnSave').onclick = async () => { if (!openFile) return; try { await post('/api/file', { path: openFile, content: $('#editor').value }); toast('Saved ' + openFile); } catch (e) { toast(e.message, true); } };
+$('#btnDownload').onclick = () => { if (openFile) location.href = '/api/download?path=' + encodeURIComponent(openFile); };
+$('#editor').onkeydown = e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); $('#btnSave').click(); } };
+$('#btnRefresh').onclick = () => listFiles(cwd);
+$('#btnNewFile').onclick = async () => { const n = prompt('File name'); if (n) { const p = (cwd ? cwd + '/' : '') + n; try { await post('/api/file', { path: p, content: '' }); await listFiles(cwd); openEditor(p); } catch (e) { toast(e.message, true); } } };
+$('#btnNewFolder').onclick = async () => { const n = prompt('Folder name'); if (n) { try { await post('/api/mkdir', { path: (cwd ? cwd + '/' : '') + n }); listFiles(cwd); } catch (e) { toast(e.message, true); } } };
+$('#btnUpload').onclick = () => $('#uploadInput').click();
+$('#uploadInput').onchange = async e => {
+  for (const f of e.target.files) {
+    try { const r = await fetch('/api/upload?path=' + encodeURIComponent((cwd ? cwd + '/' : '') + f.name), { method: 'POST', headers: { 'X-Requested-With': 'panel' }, body: f }); if (!r.ok) throw new Error((await r.json()).error); toast('Uploaded ' + f.name); }
+    catch (err) { toast(err.message, true); }
+  }
+  e.target.value = ''; listFiles(cwd);
+};
+
+api('/api/session').then(s => s.authed ? showApp() : showLogin());
+</script>
+</body>
+</html>

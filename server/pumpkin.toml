@@ -210,7 +210,7 @@ april_fools = false
 send_recipes = true
 
 [plugins]
-enabled = false
+enabled = true
 hot_reload = false
 ask_permission_confirmation = true
 allow_unsigned = true

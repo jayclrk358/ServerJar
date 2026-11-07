@@ -31,7 +31,9 @@ thiserror = "2"
 hex = "0.4"
 
 [profile.release]
-opt-level = 3
-lto = "thin"
-codegen-units = 16
+# Size-optimized so the plugin fits the Pumpkin Market's 5 MB upload limit; translation is mostly
+# table lookups, so speed is barely affected.
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
 strip = true

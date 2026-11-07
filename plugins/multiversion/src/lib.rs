@@ -41,7 +41,7 @@ mod plugin {
             PluginMetadata {
                 name: "multiversion".into(),
                 version: env!("CARGO_PKG_VERSION").into(),
-                authors: vec!["ServerJar".into()],
+                authors: vec!["Mineversed".into()],
                 description: "Lets older and newer Minecraft Java clients join by translating their protocol.".into(),
                 dependencies: vec![],
                 permissions: vec![

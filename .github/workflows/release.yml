@@ -56,9 +56,9 @@ jobs:
           | File | For |
           |---|---|
           | \`pumpkin-linux-x86_64\` | Linux x86-64 (Ubuntu 22.04+, Debian 12+). Just the server binary. |
-          | \`ServerJar-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + multiversion plugin. |
+          | \`Mineversed-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + multiversion plugin. |
           | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
-          | \`ServerJar-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
+          | \`Mineversed-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
           | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |
 
           Server binaries are attached when their builds finish (about 30 minutes after the plugin).
@@ -146,27 +146,27 @@ jobs:
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: |
-          mkdir -p dist bundle/ServerJar
+          mkdir -p dist bundle/Mineversed
           cp server/pumpkin "dist/pumpkin-${{ matrix.name }}"
-          cp server/pumpkin server/pumpkin.toml server/start.sh server/pumpkin.service bundle/ServerJar/
-          mkdir -p bundle/ServerJar/plugins/multiversion
-          cp plugins/multiversion/multiversion.wasm plugins/multiversion/install.sh plugins/multiversion/README.md bundle/ServerJar/plugins/multiversion/
-          mkdir -p bundle/ServerJar/panel && cp panel/panel.py panel/panel.html panel/panel.service panel/README.md bundle/ServerJar/panel/
-          chmod +x bundle/ServerJar/pumpkin bundle/ServerJar/start.sh bundle/ServerJar/plugins/multiversion/install.sh
-          tar -C bundle -czf "dist/ServerJar-${{ matrix.name }}.tar.gz" ServerJar
+          cp server/pumpkin server/pumpkin.toml server/start.sh server/pumpkin.service bundle/Mineversed/
+          mkdir -p bundle/Mineversed/plugins/multiversion
+          cp plugins/multiversion/multiversion.wasm plugins/multiversion/install.sh plugins/multiversion/README.md bundle/Mineversed/plugins/multiversion/
+          mkdir -p bundle/Mineversed/panel && cp panel/panel.py panel/panel.html panel/panel.service panel/README.md bundle/Mineversed/panel/
+          chmod +x bundle/Mineversed/pumpkin bundle/Mineversed/start.sh bundle/Mineversed/plugins/multiversion/install.sh
+          tar -C bundle -czf "dist/Mineversed-${{ matrix.name }}.tar.gz" Mineversed
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist, bundle/ServerJar | Out-Null
+          New-Item -ItemType Directory -Force dist, bundle/Mineversed | Out-Null
           Copy-Item server/pumpkin.exe "dist/pumpkin-${{ matrix.name }}.exe"
-          Copy-Item server/pumpkin.exe, server/pumpkin.toml, server/start.bat bundle/ServerJar/
-          New-Item -ItemType Directory -Force bundle/ServerJar/plugins/multiversion | Out-Null
-          Copy-Item plugins/multiversion/multiversion.wasm, plugins/multiversion/README.md bundle/ServerJar/plugins/multiversion/
-          New-Item -ItemType Directory -Force bundle/ServerJar/panel | Out-Null
-          Copy-Item panel/panel.py, panel/panel.html, panel/README.md bundle/ServerJar/panel/
-          Compress-Archive -Path bundle/ServerJar -DestinationPath "dist/ServerJar-${{ matrix.name }}.zip"
+          Copy-Item server/pumpkin.exe, server/pumpkin.toml, server/start.bat bundle/Mineversed/
+          New-Item -ItemType Directory -Force bundle/Mineversed/plugins/multiversion | Out-Null
+          Copy-Item plugins/multiversion/multiversion.wasm, plugins/multiversion/README.md bundle/Mineversed/plugins/multiversion/
+          New-Item -ItemType Directory -Force bundle/Mineversed/panel | Out-Null
+          Copy-Item panel/panel.py, panel/panel.html, panel/README.md bundle/Mineversed/panel/
+          Compress-Archive -Path bundle/Mineversed -DestinationPath "dist/Mineversed-${{ matrix.name }}.zip"
 
       - uses: actions/upload-artifact@v4
         with:

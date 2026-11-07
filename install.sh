@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# ServerJar one-command installer for a Linux VPS (Ubuntu 22.04+/Debian 12+, x86-64).
+# Mineversed one-command installer for a Linux VPS (Ubuntu 22.04+/Debian 12+, x86-64).
 #
-#   curl -fsSL https://raw.githubusercontent.com/jayclrk358/ServerJar/main/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/jayclrk358/Mineversed/main/install.sh | sudo bash
 #
 # What it does, idempotently:
 #   1. installs the few packages needed (ca-certificates, python3, curl, ufw)
@@ -21,7 +21,7 @@ MC_DIR="${MC_DIR:-/opt/minecraft}"
 MC_PORT="${MC_PORT:-25565}"
 PANEL_PORT="${PANEL_PORT:-8080}"
 MC_USER="${MC_USER:-minecraft}"
-REPO="jayclrk358/ServerJar"
+REPO="jayclrk358/Mineversed"
 BUNDLE_URL="${MC_RELEASE_URL:-}"
 
 say() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
@@ -58,13 +58,13 @@ for r in json.load(sys.stdin):
 ' "$1" 2>/dev/null || true
 }
 if [[ -z "$BUNDLE_URL" ]]; then
-  BUNDLE_URL="$(asset_url ServerJar-linux-x86_64.tar.gz)"
-  [[ -n "$BUNDLE_URL" ]] || BUNDLE_URL="https://github.com/$REPO/releases/latest/download/ServerJar-linux-x86_64.tar.gz"
+  BUNDLE_URL="$(asset_url Mineversed-linux-x86_64.tar.gz)"
+  [[ -n "$BUNDLE_URL" ]] || BUNDLE_URL="https://github.com/$REPO/releases/latest/download/Mineversed-linux-x86_64.tar.gz"
 fi
-say "Downloading the ServerJar release: ${BUNDLE_URL##*/download/}"
+say "Downloading the Mineversed release: ${BUNDLE_URL##*/download/}"
 curl -fsSL --retry 5 --max-time 600 -o "$TMP/bundle.tar.gz" "$BUNDLE_URL" || die "download failed: $BUNDLE_URL"
 tar -xzf "$TMP/bundle.tar.gz" -C "$TMP"
-B="$TMP/ServerJar"
+B="$TMP/Mineversed"
 [[ -x "$B/pumpkin" ]] || die "bundle has no pumpkin binary"
 
 # binary, scripts, panel and plugin are replaced on every run; config and world are kept
@@ -186,7 +186,7 @@ if [[ "$PANEL_PUBLIC" == "1" ]]; then BIND="0.0.0.0:$PANEL_PORT"; TLS="--tls"; a
 chown -R "$MC_USER:$MC_USER" "$MC_DIR"
 cat > /etc/systemd/system/minecraft.service <<UNIT
 [Unit]
-Description=Minecraft server (ServerJar: Pumpkin + web panel)
+Description=Minecraft server (Mineversed: Pumpkin + web panel)
 After=network-online.target
 Wants=network-online.target
 
@@ -227,7 +227,7 @@ fi
 # 6. mc command -------------------------------------------------------------------------------------
 cat > /usr/local/bin/mc <<'MC'
 #!/usr/bin/env bash
-# mc: manage the ServerJar Minecraft server installed by install.sh
+# mc: manage the Mineversed Minecraft server installed by install.sh
 MC_DIR="${MC_DIR:-/opt/minecraft}"
 case "${1:-help}" in
   start|stop|restart) systemctl "$1" minecraft ;;
@@ -239,8 +239,8 @@ case "${1:-help}" in
          else echo "Panel: from your PC run   ssh -L 8080:127.0.0.1:8080 root@$ip   then open http://localhost:8080"; fi
          echo "Password: set during install; change with   sudo -u minecraft python3 $MC_DIR/panel/panel.py --server $MC_DIR --set-password" ;;
   config) ${EDITOR:-nano} "$MC_DIR/pumpkin.toml" && echo "restart to apply: mc restart" ;;
-  update) sha=$(curl -fsSL --max-time 15 https://api.github.com/repos/jayclrk358/ServerJar/commits/main | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha"])' 2>/dev/null || echo main)
-          curl -fsSL "https://raw.githubusercontent.com/jayclrk358/ServerJar/$sha/install.sh" | sudo bash ;;
+  update) sha=$(curl -fsSL --max-time 15 https://api.github.com/repos/jayclrk358/Mineversed/commits/main | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha"])' 2>/dev/null || echo main)
+          curl -fsSL "https://raw.githubusercontent.com/jayclrk358/Mineversed/$sha/install.sh" | sudo bash ;;
   *) echo "usage: mc start|stop|restart|status|logs|panel|config|update" ;;
 esac
 MC

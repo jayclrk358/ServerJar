@@ -1,5 +1,0 @@
-name: PumpkinForward
-author: ServerJar
-version: 1.0.0
-main: serverjar.pumpkinforward.PumpkinForwardPlugin
-min-version: 3.4.0

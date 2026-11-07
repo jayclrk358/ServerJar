@@ -106,15 +106,42 @@ jobs:
           name: multiversion
           path: plugins/multiversion
 
+      # The server binary only depends on the pinned Pumpkin commit, the patches and the build
+      # scripts. If none of those changed since a previous release, reuse that release's binary
+      # instead of spending 15-35 minutes rebuilding it.
+      - name: Reuse the previous server binary if its inputs are unchanged
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id=$(cat build.sh build.ps1 patches/*.patch | sha256sum | cut -d' ' -f1)
+          echo "BUILD_ID=$id" >> "$GITHUB_ENV"
+          bin="pumpkin-${{ matrix.name }}"; [[ "$RUNNER_OS" == "Windows" ]] && bin="$bin.exe"
+          for tag in $(gh release list --limit 10 --json tagName --jq '.[].tagName'); do
+            prev=$(gh release download "$tag" --pattern pumpkin-build-id.txt --output - 2>/dev/null || true)
+            if [[ "$prev" == "$id" ]] && gh release download "$tag" --pattern "$bin" --dir dl 2>/dev/null; then
+              out=server/pumpkin; [[ "$RUNNER_OS" == "Windows" ]] && out="$out.exe"
+              mv "dl/$bin" "$out" && chmod +x "$out"
+              echo "REUSED=true" >> "$GITHUB_ENV"
+              echo "Reusing the server binary from release $tag (build id $id)"
+              break
+            fi
+          done
+          grep -q REUSED "$GITHUB_ENV" || echo "No previous release with build id $id: building"
+
       # x86-64-v3 (AVX2, ~2015+ CPUs) is fast and runs on practically every server CPU.
       - name: Build (Linux)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && env.REUSED != 'true'
         run: ./build.sh --cpu x86-64-v3
 
       - name: Build (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.REUSED != 'true'
         shell: pwsh
         run: ./build.ps1 -Cpu x86-64-v3
+
+      - name: Record the build id
+        shell: bash
+        run: mkdir -p dist && echo "$BUILD_ID" > dist/pumpkin-build-id.txt
 
       - name: Package (Linux)
         if: runner.os == 'Linux'
@@ -154,4 +181,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd dist && sha256sum * > "SHA256SUMS-${{ matrix.name }}" && cd ..
+          # the build id is identical on both runners; uploading twice with --clobber is fine
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber

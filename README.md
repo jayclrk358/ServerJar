@@ -1,4 +1,4 @@
-# ServerJar
+# Mineversed
 
 A very lightweight, fast-starting Minecraft Java server, built on
 [Pumpkin](https://github.com/Pumpkin-MC/Pumpkin), a Minecraft server written from scratch in Rust.
@@ -36,7 +36,7 @@ are added). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 On a fresh Ubuntu 22.04+/Debian 12+ x86-64 server, as root:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jayclrk358/ServerJar/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/jayclrk358/Mineversed/main/install.sh | sudo bash
 ```
 
 It asks for a panel password and does everything else: installs the few packages needed, downloads
@@ -58,14 +58,14 @@ environment variables documented at the top of [`install.sh`](install.sh).
 ## Download (no build needed)
 
 If you'd rather set things up by hand, ready-made servers are on the
-[Releases](https://github.com/jayclrk358/ServerJar/releases) page. It's one file, like a server jar
+[Releases](https://github.com/jayclrk358/Mineversed/releases) page. It's one file, like a server jar
 but without needing Java.
 
 **Linux VPS** (x86-64, Ubuntu 22.04+ / Debian 12+):
 
 ```bash
 mkdir -p ~/mc && cd ~/mc
-curl -L https://github.com/jayclrk358/ServerJar/releases/latest/download/ServerJar-linux-x86_64.tar.gz | tar -xz --strip-components=1
+curl -L https://github.com/jayclrk358/Mineversed/releases/latest/download/Mineversed-linux-x86_64.tar.gz | tar -xz --strip-components=1
 ./start.sh
 ```
 
@@ -74,7 +74,7 @@ connect with a Minecraft Java 26.3 client. To run it as a service, edit the user
 `pumpkin.service` (they should point at `~/mc`), copy it to `/etc/systemd/system/` and run
 `sudo systemctl enable --now pumpkin`.
 
-**Windows:** download `ServerJar-windows-x86_64.zip`, unzip it, and run `start.bat`.
+**Windows:** download `Mineversed-windows-x86_64.zip`, unzip it, and run `start.bat`.
 
 To update, download the new release over the old `pumpkin` / `pumpkin.exe` and keep your
 `pumpkin.toml` and `world` folder. Back up `world` first.
@@ -101,7 +101,7 @@ Then run `server\start.bat` and connect to `localhost` with a 26.3 client.
 ```bash
 sudo apt install -y git build-essential pkg-config curl python3
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source ~/.cargo/env
-git clone https://github.com/jayclrk358/ServerJar.git && cd ServerJar
+git clone https://github.com/jayclrk358/Mineversed.git && cd Mineversed
 chmod +x build.sh server/start.sh && ./build.sh
 ./server/start.sh
 ```

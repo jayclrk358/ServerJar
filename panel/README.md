@@ -1,4 +1,4 @@
-# ServerJar panel
+# Mineversed panel
 
 A small web page to run the server: start, stop, restart, kill, live console with command input,
 and a file browser/editor for the server folder. One Python file plus one HTML page, standard

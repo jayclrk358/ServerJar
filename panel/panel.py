@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ServerJar panel: start/stop the Pumpkin server, watch its console, send commands, edit files.
+"""Mineversed panel: start/stop the Pumpkin server, watch its console, send commands, edit files.
 
 Standard library only. Run it next to the server folder:
 
@@ -293,7 +293,7 @@ class Files:
 # ---------------------------------------------------------------- http ----------------------------
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "ServerJarPanel/1.0"
+    server_version = "MineversedPanel/1.0"
     protocol_version = "HTTP/1.1"
 
     # shared state, set in main()
@@ -496,7 +496,7 @@ def main():
         if not (os.path.exists(cert) and os.path.exists(key)):
             if shutil.which("openssl") is None:
                 sys.exit("--tls needs the openssl command to create a certificate (apt install openssl)")
-            subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650", "-subj", "/CN=serverjar-panel",
+            subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650", "-subj", "/CN=mineversed-panel",
                             "-keyout", key, "-out", cert], check=True, capture_output=True)
             os.chmod(key, 0o600)
             print(f"created self-signed certificate {cert}")

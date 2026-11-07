@@ -31,8 +31,8 @@ if [[ -z "$WASM" ]]; then
     "$HERE/build.sh"
     WASM="$HERE/target/wasm32-wasip2/release/multiversion.wasm"
   else
-    echo "Downloading multiversion.wasm from the latest ServerJar release..."
-    curl -L --retry 5 --fail -o "$HERE/multiversion.wasm" "https://github.com/jayclrk358/ServerJar/releases/latest/download/multiversion.wasm"
+    echo "Downloading multiversion.wasm from the latest Mineversed release..."
+    curl -L --retry 5 --fail -o "$HERE/multiversion.wasm" "https://github.com/jayclrk358/Mineversed/releases/latest/download/multiversion.wasm"
     WASM="$HERE/multiversion.wasm"
   fi
 fi

@@ -53,10 +53,10 @@ player (26.2) ──► plugin listener :25565 ──► translator chain ──
 
 ## Install
 
-Requirements: this repo's Pumpkin build (26.3). Nothing else: no Java, no proxy, no extra process.
+Requirements: a Pumpkin 26.3 server (built from commit `d1190dc`, plugin API v0.1). Nothing else: no Java, no proxy, no extra process.
 
-1. Copy `multiversion.wasm` (from a release, or built with `build.sh`) into `server/plugins/`.
-2. Start the server once. The plugin writes `server/plugins/data/multiversion/config.toml` with a
+1. Copy `multiversion.wasm` (from the [latest release](https://github.com/jayclrk358/Multiversion/releases/latest), or built with `build.sh`) into your server's `plugins/` folder.
+2. Start the server once. The plugin writes `plugins/data/multiversion/config.toml` with a
    fresh forwarding secret, and `pumpkin-settings.txt` next to it with the three `pumpkin.toml`
    settings it needs (Pumpkin only lets plugins write their own data folder, so this edit is the
    one thing it cannot do itself):
@@ -69,17 +69,16 @@ Requirements: this repo's Pumpkin build (26.3). Nothing else: no Java, no proxy,
    exactly which setting is missing (port still held by Pumpkin, or forwarding not enabled).
 3. Players keep connecting to port 25565. Keep 25566 closed in the firewall.
 
-`install.sh` is an optional shortcut that does steps 1 and 2 (it needs Python 3 for the toml edit).
 `online_mode` in `pumpkin.toml` can stay `true`: with forwarding enabled, Pumpkin trusts the
 plugin's signed profile instead of asking Mojang itself.
 
 ### Permissions
 
 The plugin asks Pumpkin for `network.tcp` (listen + connect to Pumpkin), `http.outbound` (Mojang
-session server), `fs.read.data` and `fs.write.data` (its config). `install.sh` pre-approves them
-in `[plugins.overrides.multiversion]`; otherwise Pumpkin asks on the console at first load.
+session server), `fs.read.data` and `fs.write.data` (its config). The `pumpkin-settings.txt` snippet
+pre-approves them in `[plugins.overrides.multiversion]`; otherwise Pumpkin asks on the console at first load.
 
-## Configuration (`server/plugins/data/multiversion/config.toml`)
+## Configuration (`plugins/data/multiversion/config.toml`)
 
 ```toml
 [listen]
@@ -141,8 +140,8 @@ cushions appear as carpet blocks; new enchantment effect definitions are not sho
 ## Build from source
 
 ```bash
-./plugins/multiversion/build.sh    # needs Rust; adds the wasm32-wasip2 target itself
-cargo test --manifest-path plugins/multiversion/Cargo.toml   # native unit tests
+./build.sh          # needs Rust; adds the wasm32-wasip2 target itself (.\build.ps1 on Windows)
+cargo test --release   # native unit tests
 ```
 
 ### Layout

@@ -14,7 +14,7 @@ This repo adds performance patches and a tuned low-resource config on top of it.
 | 100 walking players | – | 20 TPS, ~1.7 cores, ~600 MB peak |
 
 Target: **Minecraft Java 26.3** (protocol 777). Other client versions can join through the
-[`multiversion` plugin](plugins/multiversion/README.md) (every release from 1.21 to 26.2). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
+[`multiversion` plugin](https://github.com/jayclrk358/Multiversion) (every release from 1.21 to 26.2). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 
 ## What's in here
 
@@ -134,15 +134,14 @@ cp multiversion.wasm server/plugins/      # from the release, or ./plugins/multi
                                            # (moves Pumpkin to 127.0.0.1:25566), then restart
 ```
 
-`./plugins/multiversion/install.sh` does the copy and the `pumpkin.toml` edit for you if you prefer.
 Players connect to 25565 as before; only that port needs to be open.
 
 ## Performance and debugging
 
 The `perfmon` plugin is installed alongside. `/perf` shows TPS over 5 s to 15 min, tick-time
 percentiles, lag spikes, entity counts per dimension and memory; `/perf report` writes everything
-to a file, and metrics are logged to `plugins/data/perfmon/metrics.csv` every minute. See
-[plugins/perfmon/README.md](plugins/perfmon/README.md).
+to a file, and metrics are logged to `plugins/data/perfmon/metrics.csv` every minute. Its own repository is
+[jayclrk358/Perfmon](https://github.com/jayclrk358/Perfmon).
 
 ## Patches
 

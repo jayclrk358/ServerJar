@@ -168,11 +168,11 @@ jobs:
           cp server/pumpkin "dist/pumpkin-${{ matrix.name }}"
           cp server/pumpkin server/pumpkin.toml server/start.sh server/pumpkin.service bundle/Mineversed/
           mkdir -p bundle/Mineversed/plugins/multiversion
-          cp plugins/multiversion/multiversion.wasm plugins/multiversion/install.sh plugins/multiversion/README.md bundle/Mineversed/plugins/multiversion/
+          cp plugins/multiversion/multiversion.wasm plugins/multiversion/README.md bundle/Mineversed/plugins/multiversion/
           mkdir -p bundle/Mineversed/plugins/perfmon
           cp plugins/perfmon/perfmon.wasm plugins/perfmon/README.md bundle/Mineversed/plugins/perfmon/
           mkdir -p bundle/Mineversed/panel && cp panel/panel.py panel/panel.html panel/panel.service panel/README.md bundle/Mineversed/panel/
-          chmod +x bundle/Mineversed/pumpkin bundle/Mineversed/start.sh bundle/Mineversed/plugins/multiversion/install.sh
+          chmod +x bundle/Mineversed/pumpkin bundle/Mineversed/start.sh
           tar -C bundle -czf "dist/Mineversed-${{ matrix.name }}.tar.gz" Mineversed
 
       - name: Package (Windows)

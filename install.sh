@@ -96,10 +96,9 @@ else
   say "Could not download multiversion.wasm from github.com/jayclrk358/Multiversion: the server will accept 26.3 clients only. Re-run 'mc update' once it has a release."
 fi
 
-# perfmon (performance and debug plugin): from the bundle, else the release asset; optional.
-if [[ -f "$B/plugins/perfmon/perfmon.wasm" ]]; then
-  install -m 644 "$B/plugins/perfmon/perfmon.wasm" "$MC_DIR/plugins/perfmon.wasm"
-elif PERF_URL="$(asset_url perfmon.wasm)" && [[ -n "$PERF_URL" ]] && curl -fsSL --retry 3 --max-time 120 -o "$TMP/perfmon.wasm" "$PERF_URL" 2>/dev/null; then
+# perfmon (performance and debug plugin), from its own repository's latest release; optional.
+PERF_URL="${PERF_URL:-https://github.com/jayclrk358/Perfmon/releases/latest/download/perfmon.wasm}"
+if curl -fsSL --retry 3 --max-time 120 -o "$TMP/perfmon.wasm" "$PERF_URL" 2>/dev/null; then
   install -m 644 "$TMP/perfmon.wasm" "$MC_DIR/plugins/perfmon.wasm"
 fi
 

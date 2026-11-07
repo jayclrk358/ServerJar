@@ -12,39 +12,14 @@ permissions:
   contents: write
 
 jobs:
-  # perfmon Pumpkin plugin (WebAssembly; see plugins/perfmon/README.md).
-  plugins:
+  # Creates the release with its notes; the build jobs attach the server downloads as they finish.
+  release:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        run: rustup toolchain install stable --profile minimal && rustup default stable && rustup target add wasm32-wasip2
-
-      # Compiled dependencies are reused between runs; only changed crates rebuild.
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: plugins/perfmon
-          key: wasm32-wasip2
-
-      - name: Test
-        run: |
-          cargo test --release --manifest-path plugins/perfmon/Cargo.toml
-
-      - name: Build perfmon.wasm
-        run: |
-          ./plugins/perfmon/build.sh
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: perfmon
-          path: plugins/perfmon/target/wasm32-wasip2/release/perfmon.wasm
-          if-no-files-found: error
-
-      # Publish the release right away with the plugin; the server binaries are attached by the
-      # build jobs as they finish (20-30 min later), so `mc update` can pick up the plugin early.
-      - name: Create release with the plugin
+      - name: Create the release
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
@@ -58,21 +33,21 @@ jobs:
           | File | For |
           |---|---|
           | \`pumpkin-linux-x86_64\` | Linux x86-64 (Ubuntu 22.04+, Debian 12+). Just the server binary. |
-          | \`Mineversed-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + perfmon plugin. |
+          | \`Mineversed-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel. |
           | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
           | \`Mineversed-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
           | Multiversion | The plugin that lets 1.21+ clients join lives in its own repository: https://github.com/jayclrk358/Multiversion. The VPS installer downloads it from there. |
-          | \`perfmon.wasm\` | Pumpkin plugin for performance and debugging: \`/perf\` shows TPS, tick-time percentiles, lag spikes, entity counts and memory, and it logs metrics to \`plugins/data/perfmon/metrics.csv\`. Also inside both bundles. |
+          | perfmon | The performance and debug plugin lives in its own repository: https://github.com/jayclrk358/Perfmon. The VPS installer downloads it from there. |
 
-          Server binaries are attached when their builds finish (about 30 minutes after the plugin).
+          Server binaries are attached when their builds finish (15 to 35 minutes after the release appears).
           Built for x86-64-v3 CPUs (AVX2, roughly 2015 or newer).
           Pumpkin commit \`$commit\` with these patches:
           $patches
           EOF
-          gh release create "$GITHUB_REF_NAME" plugins/perfmon/target/wasm32-wasip2/release/perfmon.wasm --title "$GITHUB_REF_NAME" --notes-file notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
 
   build:
-    needs: plugins
+    needs: release
     strategy:
       fail-fast: false
       matrix:
@@ -103,11 +78,6 @@ jobs:
         with:
           workspaces: Pumpkin
           key: ${{ matrix.name }}
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: perfmon
-          path: plugins/perfmon
 
       # The server binary only depends on the pinned Pumpkin commit, the patches and the build
       # scripts. If none of those changed since a previous release, reuse that release's binary
@@ -152,8 +122,6 @@ jobs:
           mkdir -p dist bundle/Mineversed
           cp server/pumpkin "dist/pumpkin-${{ matrix.name }}"
           cp server/pumpkin server/pumpkin.toml server/start.sh server/pumpkin.service bundle/Mineversed/
-          mkdir -p bundle/Mineversed/plugins/perfmon
-          cp plugins/perfmon/perfmon.wasm plugins/perfmon/README.md bundle/Mineversed/plugins/perfmon/
           mkdir -p bundle/Mineversed/panel && cp panel/panel.py panel/panel.html panel/panel.service panel/README.md bundle/Mineversed/panel/
           chmod +x bundle/Mineversed/pumpkin bundle/Mineversed/start.sh
           tar -C bundle -czf "dist/Mineversed-${{ matrix.name }}.tar.gz" Mineversed
@@ -165,8 +133,6 @@ jobs:
           New-Item -ItemType Directory -Force dist, bundle/Mineversed | Out-Null
           Copy-Item server/pumpkin.exe "dist/pumpkin-${{ matrix.name }}.exe"
           Copy-Item server/pumpkin.exe, server/pumpkin.toml, server/start.bat bundle/Mineversed/
-          New-Item -ItemType Directory -Force bundle/Mineversed/plugins/perfmon | Out-Null
-          Copy-Item plugins/perfmon/perfmon.wasm, plugins/perfmon/README.md bundle/Mineversed/plugins/perfmon/
           New-Item -ItemType Directory -Force bundle/Mineversed/panel | Out-Null
           Copy-Item panel/panel.py, panel/panel.html, panel/README.md bundle/Mineversed/panel/
           Compress-Archive -Path bundle/Mineversed -DestinationPath "dist/Mineversed-${{ matrix.name }}.zip"

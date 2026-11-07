@@ -20,7 +20,6 @@
 
 
 # Plugin build output
-/plugins/perfmon/target/
 /server/.panel-auth.json
 /server/.panel-cert.pem
 /server/.panel-key.pem

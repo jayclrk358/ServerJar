@@ -26,9 +26,8 @@ Target: **Minecraft Java 26.3** (protocol 777). Other client versions can join t
 | `server/pumpkin.toml` | Low-resource config (see below). |
 | `server/start.bat` / `start.sh` | Starts the server. |
 | `server/pumpkin.service` | systemd unit for Linux. |
-| `plugins/perfmon/` | **perfmon** Pumpkin plugin: `/perf` for TPS, tick times, lag spikes, entities and memory. Also in its own repository, [jayclrk358/Perfmon](https://github.com/jayclrk358/Perfmon). |
 | `panel/` | Web panel to start/stop/restart the server, watch the console, send commands and edit files. Python standard library only; see [`panel/README.md`](panel/README.md). |
-| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads and `perfmon.wasm` on GitHub. |
+| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads on GitHub. |
 
 ## Quick start on a Linux VPS (one command)
 
@@ -141,10 +140,10 @@ Players connect to 25565 as before; only that port needs to be open.
 
 ## Performance and debugging
 
-The `perfmon` plugin is installed alongside. `/perf` shows TPS over 5 s to 15 min, tick-time
+The VPS installer also installs the `perfmon` plugin from its own repository,
+[jayclrk358/Perfmon](https://github.com/jayclrk358/Perfmon). `/perf` shows TPS over 5 s to 15 min, tick-time
 percentiles, lag spikes, entity counts per dimension and memory; `/perf report` writes everything
-to a file, and metrics are logged to `plugins/data/perfmon/metrics.csv` every minute. Its own repository is
-[jayclrk358/Perfmon](https://github.com/jayclrk358/Perfmon).
+to a file, and metrics are logged to `plugins/data/perfmon/metrics.csv` every minute.
 
 ## Patches
 

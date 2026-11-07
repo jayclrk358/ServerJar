@@ -3,7 +3,7 @@
 //! Both versions share every component codec except the ones 1.21.11 added (dropped toward the
 //! client) and two whose encoding changed: `consumable` gained an animation id (spear) and block
 //! predicates tag each data component predicate with an "is predicate type" flag. Wire formats
-//! follow ViaVersion's StructuredDataKey definitions for these versions.
+//! follow the vanilla data component definitions for these versions.
 
 use std::cell::Cell;
 

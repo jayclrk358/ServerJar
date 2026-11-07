@@ -1,7 +1,7 @@
 //! 1.21.6 (protocol 771) ↔ 1.21.5 (protocol 770).
 //!
-//! Packet layout differences follow ViaBackwards' `Protocol1_21_6To1_21_5`; registry id tables are
-//! generated from ViaVersion's mapping files (see `tools/gen_mappings.py`). Dialogs and waypoints
+//! Packet layout differences follow the vanilla protocol changes between these versions; registry id tables are
+//! generated from the game's registry mapping data (see `tools/gen_mappings.py`). Dialogs and waypoints
 //! do not exist for the old client and are dropped.
 
 pub mod entity;

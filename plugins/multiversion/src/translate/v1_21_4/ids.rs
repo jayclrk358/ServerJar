@@ -1,5 +1,5 @@
 //! Packet ids for 1.21.5 (protocol 770, server side of this step) and 1.21.4 (protocol 769).
-//! Source: ViaVersion's ClientboundPackets1_21_5 / ClientboundPackets1_21_2 and the serverbound
+//! Source: the vanilla packet lists for both versions and the serverbound
 //! enums (enum ordinal = packet id). Configuration ids are identical in both versions.
 
 pub mod new {
@@ -96,7 +96,7 @@ pub fn play_serverbound(id: i32) -> Option<i32> {
 mod tests {
     use super::*;
     #[test]
-    fn id_maps_match_viaversion_enums() {
+    fn id_maps_match_vanilla_packet_lists() {
         // 1.21.5 → 1.21.4 clientbound
         assert_eq!(play_clientbound(new::ADD_ENTITY), Some(1));
         assert_eq!(play_clientbound(2), Some(3)); // ANIMATE

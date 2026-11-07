@@ -1,6 +1,5 @@
 //! Packet ids for 1.21.2 (protocol 768, server side of this step) and 1.21 / 1.21.1 (protocol 767).
-//! Source: ViaVersion's ClientboundPackets1_21_2 / ClientboundPackets1_21 and
-//! ServerboundPackets1_21_2 / ServerboundPackets1_20_5 enums (ordinal = id).
+//! Source: the vanilla packet lists for both versions, in both directions (position = id).
 
 pub mod new {
     // clientbound play (1.21.2)

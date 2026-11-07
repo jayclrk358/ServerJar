@@ -1,5 +1,5 @@
 //! Packet ids for 26.1 (protocol 775, server side) and 1.21.11 (protocol 774, client side).
-//! Source: ViaVersion's ClientboundPackets26_1 / ServerboundPackets26_1 and the 1.21.11
+//! Source: the vanilla packet lists for both versions and the 1.21.11
 //! clientbound / 1.21.6 serverbound enums (1.21.11 kept the 1.21.6 serverbound list).
 //! Configuration ids are identical in both versions (1.21.9 lists).
 

@@ -1,5 +1,5 @@
 //! Packet ids for 26.3 (protocol 777, the backend) and 26.2 (protocol 776, the client).
-//! Source: Pumpkin's assets/packets.json (26.3) and ViaVersion's 26.1/26.2 packet enums.
+//! Source: Pumpkin's assets/packets.json (26.3) and the vanilla 26.1/26.2 packet lists.
 
 pub mod new {
     // clientbound play (26.3)

@@ -1,5 +1,5 @@
 //! Entities 1.21.2 → 1.21: spawning, entity data, teleports and player movement, following
-//! ViaBackwards' `EntityPacketRewriter1_21_2`.
+//! the vanilla changes.
 
 use std::collections::HashMap;
 
@@ -664,7 +664,7 @@ impl Entities {
         Ok(w.into_inner())
     }
 
-    /// Movement keys guessed from the position change, like ViaBackwards' PlayerStorage.
+    /// Movement keys guessed from the position change.
     fn input_from_delta(before: &PlayerState, now: &PlayerState) -> u8 {
         let (dx, dy, dz) = (now.x - before.x, now.y - before.y, now.z - before.z);
         let magnitude = (dx * dx + dz * dz).sqrt();

@@ -1,7 +1,7 @@
 //! Item stacks and their data components, 26.3 ↔ 26.2.
 //!
 //! Every component is parsed with its exact wire format (vanilla codecs as documented by
-//! ViaVersion) so the stream stays in sync; registry ids inside are remapped, and components the
+//! vanilla) so the stream stays in sync; registry ids inside are remapped, and components the
 //! other side does not know are dropped or converted.
 
 use std::cell::Cell;

@@ -1,6 +1,6 @@
 //! Packet ids for 26.2 (protocol 776, server side) and 26.1 (protocol 775, client side).
 //!
-//! Both versions share ViaVersion's `ClientboundPackets26_1` / `ServerboundPackets26_1` enums
+//! Both versions share the same vanilla packet lists
 //! and the 1.21.9 configuration enums, so every id is identical; only payloads differ.
 
 pub mod new {

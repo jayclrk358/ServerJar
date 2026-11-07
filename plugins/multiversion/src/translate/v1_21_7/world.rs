@@ -321,7 +321,7 @@ fn tag_f64(t: &Tag) -> Option<f64> {
 }
 
 /// Sound references the old client lacks would fail registry loading: replace them with an
-/// inline, silent sound event (as ViaBackwards does).
+/// inline, silent sound event.
 fn fix_sound(parent: &mut Tag, field: &str) {
     let known = |id: &str| d::OLD_SOUND_NAMES.contains(&id.strip_prefix("minecraft:").unwrap_or(id));
     let silent = || {

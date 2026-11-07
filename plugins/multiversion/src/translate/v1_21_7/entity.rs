@@ -1,8 +1,8 @@
 //! Entities 1.21.9 → 1.21.7: spawning (low-precision movement vectors), motion, entity data
 //! (metadata) types and player/avatar indexes, player rotation, spawn position, world border.
 //!
-//! Follows ViaBackwards' `EntityPacketRewriter1_21_9`. Copper golems are shown as frogs and
-//! mannequins as fake tab-hidden players, like ViaBackwards does.
+//! Follows the vanilla changes between these versions. Copper golems are shown as frogs and
+//! mannequins as fake tab-hidden players.
 
 use std::collections::HashMap;
 
@@ -65,7 +65,7 @@ fn entity_id(name: &str) -> i32 {
     d::NEW_ENTITY_NAMES.iter().position(|n| *n == name).map_or(-1, |p| p as i32)
 }
 
-/// Decodes a 1.21.9 low-precision vector (ViaVersion's `LowPrecisionVectorType`).
+/// Decodes a 1.21.9 low-precision vector (vanilla low-precision vector).
 pub fn read_low_precision_vector(r: &mut Reader) -> Result<(f64, f64, f64)> {
     let first = u64::from(r.u8()?);
     if first == 0 {
@@ -86,7 +86,7 @@ pub fn read_low_precision_vector(r: &mut Reader) -> Result<(f64, f64, f64)> {
     Ok((unpack(packed >> 3) * s, unpack(packed >> 18) * s, unpack(packed >> 33) * s))
 }
 
-/// Legacy velocity short (1/8000 block per tick), rounded like ViaBackwards does.
+/// Legacy velocity short (1/8000 block per tick), rounded.
 fn legacy_velocity(v: f64) -> i16 {
     (v * 8000.0).round().clamp(f64::from(i16::MIN), f64::from(i16::MAX)) as i16
 }

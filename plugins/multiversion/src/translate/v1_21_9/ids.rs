@@ -1,7 +1,7 @@
 //! Packet ids for 1.21.11 (protocol 774, server side) and 1.21.9 (protocol 773, client side).
-//! Source: ViaVersion's ClientboundPackets1_21_11 / ClientboundPackets1_21_9 (same order; only
-//! HORSE_SCREEN_OPEN was renamed MOUNT_SCREEN_OPEN), the shared 1.21.9 configuration enums and
-//! ServerboundPackets1_21_6, which both versions use. Every id maps to itself.
+//! Source: the vanilla packet lists for both versions. They are in the same order (only
+//! HORSE_SCREEN_OPEN was renamed MOUNT_SCREEN_OPEN), and the configuration and serverbound lists
+//! are shared. Every id maps to itself.
 
 pub mod new {
     // clientbound play

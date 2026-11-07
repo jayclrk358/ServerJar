@@ -1,7 +1,7 @@
 //! 1.21.11 (protocol 774) ↔ 1.21.9 (protocol 773, also used by 1.21.10).
 //!
-//! Packet layout differences follow ViaBackwards' `Protocol1_21_11To1_21_9`; registry id tables
-//! are generated from ViaVersion's mapping files (see `tools/gen_mappings.py`). Packet ids are
+//! Packet layout differences follow the vanilla protocol changes between these versions; registry id tables
+//! are generated from the game's registry mapping data (see `tools/gen_mappings.py`). Packet ids are
 //! identical, and so are block states, so chunks pass through untouched.
 
 pub mod entity;

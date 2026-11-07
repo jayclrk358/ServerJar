@@ -1,6 +1,6 @@
 //! Entities 1.21.6 → 1.21.5: spawning, entity data (metadata), equipment.
 //!
-//! Follows ViaBackwards' `EntityPacketRewriter1_21_6`: happy ghasts become ghasts (babies are
+//! Follows the vanilla changes between these versions: happy ghasts become ghasts (babies are
 //! shrunk with the scale attribute), hanging entities lose their direction field (index 8), and
 //! non-living entities spawned with a velocity get an extra motion packet because the 1.21.5
 //! client ignores the spawn velocity for them.
@@ -44,7 +44,7 @@ mod ty {
     pub const QUATERNION: i32 = 34;
 }
 
-/// Concrete 1.21.6 entity types that are living entities (from ViaVersion's EntityTypes1_21_6).
+/// Concrete 1.21.6 entity types that are living entities (vanilla 1.21.6 entity types).
 const LIVING: &[&str] = &[
     "armor_stand", "player", "ender_dragon", "slime", "magma_cube", "bat", "ghast", "phantom", "allay", "snow_golem", "iron_golem",
     "shulker", "villager", "wandering_trader", "axolotl", "chicken", "panda", "pig", "polar_bear", "rabbit", "sheep", "bee", "turtle",

@@ -1,8 +1,7 @@
 //! 1.21.2 (protocol 768) ↔ 1.21 / 1.21.1 (protocol 767).
 //!
-//! Packet layout differences follow ViaBackwards' `Protocol1_21_2To1_21` (clientbound) and
-//! ViaVersion's `Protocol1_21To1_21_2` (serverbound); registry id tables are generated from
-//! ViaVersion's mapping files (see `tools/gen_mappings.py`).
+//! Packet layout differences follow the vanilla protocol changes between these versions, in both directions; registry id tables are generated from
+//! the game's registry mapping data (see `tools/gen_mappings.py`).
 
 pub mod entity;
 pub mod ids;

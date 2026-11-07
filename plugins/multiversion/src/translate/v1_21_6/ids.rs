@@ -1,7 +1,6 @@
 //! Packet ids for 1.21.7 (protocol 772) and 1.21.6 (protocol 771).
 //!
-//! Both versions use the same packet tables (ViaVersion reuses `ClientboundPackets1_21_6` and
-//! `ServerboundPackets1_21_6` for 1.21.7), so every id passes through unchanged in both states and
+//! Both versions use the same packet lists, so every id passes through unchanged in both states and
 //! both directions. Only the packets that carry registry ids that differ between the two versions
 //! are listed here.
 

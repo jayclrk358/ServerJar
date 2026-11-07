@@ -1,4 +1,4 @@
-//! Plugin configuration: `plugins/multiversion/config.toml`.
+//! Plugin configuration: `plugins/data/multiversion/config.toml`.
 //!
 //! A default file is written on first start so the server owner only has to fill in the
 //! forwarding secret and (optionally) change ports.

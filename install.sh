@@ -267,7 +267,7 @@ IP="$(curl -4 -fsS --max-time 5 https://ifconfig.me 2>/dev/null || hostname -I |
 echo
 say "Done. Your server is starting."
 if [[ "$HAVE_PLUGIN" == "1" ]]; then
-  echo "   Players connect to:   $IP:$MC_PORT   (Minecraft 26.3; 26.2 via the multiversion plugin)"
+  echo "   Players connect to:   $IP:$MC_PORT   (Minecraft 1.21 to 26.3 with the multiversion plugin)"
 else
   echo "   Players connect to:   $IP:$MC_PORT   (Minecraft 26.3)"
 fi

@@ -1,6 +1,6 @@
 //! Entities 1.21.11 → 1.21.9: spawn type remaps and entity data (metadata).
 //!
-//! Follows ViaBackwards' EntityPacketRewriter1_21_11: nautilus → squid, zombie nautilus → glow
+//! Follows the vanilla changes between these versions: nautilus → squid, zombie nautilus → glow
 //! squid, camel husk → camel, parched → skeleton (via the generated entity table); the zombie
 //! nautilus variant data type is removed; the humanoid arm type becomes a byte; wolf and bee anger
 //! end times go back from absolute game time to remaining ticks.

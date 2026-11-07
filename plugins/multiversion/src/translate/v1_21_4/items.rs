@@ -1,5 +1,4 @@
-//! Item stacks and data components, 1.21.5 ↔ 1.21.4 (ViaBackwards' `BlockItemPacketRewriter1_21_5`
-//! and ViaVersion's `BlockItemPacketRewriter1_21_5`).
+//! Item stacks and data components, 1.21.5 ↔ 1.21.4 (following the vanilla format changes).
 //!
 //! Main differences: 1.21.5 replaced the per-component `show_in_tooltip` flags and the
 //! hide_tooltip / hide_additional_tooltip components with `tooltip_display`, added 29 components
@@ -270,7 +269,7 @@ impl Items {
     }
 
     /// Like [`item_stack`]; with `regs`, the server's component hashes are stored on the item so
-    /// a later container click can report them (inventory packets only, like ViaVersion).
+    /// a later container click can report them (inventory packets only).
     pub fn item_stack_tracked(&self, r: &mut Reader, w: &mut Writer, regs: Option<&Registries>) -> Result<()> {
         let count = Self::copy_varint(r, w)?;
         if count <= 0 {
@@ -1686,7 +1685,7 @@ fn component_hv(name: &str, r: &mut Reader, regs: &Registries) -> Option<Hv> {
                 registry_ident(regs, "painting_variant", v - 1)?
             }
         }
-        // Not encodable with ops in ViaVersion either (can_place_on/can_break) or not implemented.
+        // Not encodable with ops anywhere (can_place_on/can_break) or not implemented.
         _ => return None,
     })
 }

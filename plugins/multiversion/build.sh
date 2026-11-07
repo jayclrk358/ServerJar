@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the multiversion plugin: plugins/multiversion/target/wasm32-wasip2/release/multiversion.wasm
+# Builds the multiversion plugin: target/wasm32-wasip2/release/multiversion.wasm
 # Needs Rust (https://rustup.rs). The wasm target is added automatically.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"

@@ -1,7 +1,7 @@
 //! World data 26.2 → 26.1: chunks, block updates, block entities, tags, registry data.
 //!
 //! 26.2 dropped the bed block entity; a 26.1 client needs one per bed block to render it, so
-//! chunks and block updates grow synthesized bed block entities (as ViaBackwards does).
+//! chunks and block updates grow synthesized bed block entities.
 
 use super::data_26_1 as d;
 use super::items::Items;

@@ -1,7 +1,7 @@
 //! 26.3 (protocol 777) ↔ 26.2 (protocol 776).
 //!
-//! Packet layout differences follow ViaBackwards' `Protocol26_3To26_2`; registry id tables are
-//! generated from ViaVersion's mapping files (see `tools/gen_mappings.py`).
+//! Packet layout differences follow the vanilla protocol changes between these versions; registry id tables are
+//! generated from the game's registry mapping data (see `tools/gen_mappings.py`).
 
 pub mod entity;
 pub mod ids;

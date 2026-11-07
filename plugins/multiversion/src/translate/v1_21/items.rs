@@ -1,7 +1,7 @@
 //! Item stacks and data components, 1.21.2 ↔ 1.21.
 //!
 //! Every component is parsed with its exact wire format (vanilla codecs as documented by
-//! ViaVersion) so the stream stays in sync. Components are collected first and written after, because
+//! vanilla) so the stream stays in sync. Components are collected first and written after, because
 //! some 1.21 components are built from several 1.21.2 ones (food = food + consumable + use_remainder).
 //!
 //! Components the 1.21 client cannot represent are kept, in their original 1.21.2 encoding, inside

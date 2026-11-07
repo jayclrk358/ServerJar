@@ -11,7 +11,7 @@ fn err(msg: &str) -> DecodeError {
     DecodeError::Other(msg.to_string())
 }
 
-/// Entity data value types in 26.1 (ViaVersion `EntityDataTypes26_1`).
+/// Entity data value types in 26.1 (vanilla).
 mod ty {
     pub const BYTE: i32 = 0;
     pub const VARINT: i32 = 1;

@@ -3,7 +3,7 @@
 //! Both versions have the same 96 component types in the same order. Only two encodings changed:
 //! `equippable` gained "can be sheared" + a shearing sound, and every `attribute_modifiers` entry
 //! gained a display mode. Everything else is parsed with its exact wire format so the stream stays
-//! in sync while registry ids inside are remapped (formats as documented by ViaVersion).
+//! in sync while registry ids inside are remapped (vanilla wire formats).
 
 use super::super::data_1_21_5 as d;
 use crate::proto::buf::{DecodeError, Reader, Result, Writer};

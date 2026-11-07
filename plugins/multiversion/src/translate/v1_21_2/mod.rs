@@ -1,7 +1,6 @@
 //! 1.21.4 (protocol 769) ↔ 1.21.2 / 1.21.3 (protocol 768).
 //!
-//! Packet layout differences follow ViaBackwards' `Protocol1_21_4To1_21_2` and ViaVersion's
-//! `Protocol1_21_2To1_21_4`; registry id tables are generated from ViaVersion's mapping files
+//! Packet layout differences follow the vanilla protocol changes between these versions; registry id tables are generated from the game's registry mapping data
 //! (see `tools/gen_mappings.py`). Clientbound packet ids are identical in both versions; only
 //! serverbound ids shifted (PICK_ITEM split in two, PLAYER_LOADED added).
 

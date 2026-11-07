@@ -1,9 +1,9 @@
 //! 1.21.7 (protocol 772) ↔ 1.21.6 (protocol 771).
 //!
-//! Follows ViaBackwards' `Protocol1_21_7To1_21_6`: packet ids, packet layouts, data components and
+//! Follows the vanilla changes between these versions: packet ids, packet layouts, data components and
 //! entity data types are identical, so the step only remaps registry ids. The one content change is
 //! the "Lava Chicken" music disc and its sound, which map to Pigstep and shift every later item and
-//! sound id. Registry id tables are generated from ViaVersion's mapping files
+//! sound id. Registry id tables are generated from the game's registry mapping data
 //! (see `tools/gen_mappings.py`).
 
 pub mod entity;

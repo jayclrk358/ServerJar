@@ -12,7 +12,7 @@ fn err(msg: &str) -> DecodeError {
     DecodeError::Other(msg.to_string())
 }
 
-/// Entity data serializer ids (ViaVersion's `EntityDataTypes1_21_5`, used by 1.21.5 to 1.21.7).
+/// Entity data serializer ids (vanilla entity data types, used by 1.21.5 to 1.21.7).
 mod ty {
     pub const BYTE: i32 = 0;
     pub const VARINT: i32 = 1;

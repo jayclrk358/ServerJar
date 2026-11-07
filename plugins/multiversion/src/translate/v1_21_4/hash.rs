@@ -2,8 +2,8 @@
 //!
 //! Vanilla hashes a component by encoding it with its codec into a small tagged byte format and
 //! taking CRC32C of the result; maps and lists hash their children separately and embed only the
-//! child hashes (maps sorted by unsigned key hash, then value hash). This mirrors ViaVersion's
-//! `HashOps` / `HashBuilder` exactly so the hashes match what the server computes.
+//! child hashes (maps sorted by unsigned key hash, then value hash). This mirrors the vanilla
+//! item hashing exactly so the hashes match what the server computes.
 
 /// A value in the codec's data model, ready to be hashed.
 #[derive(Debug, Clone, PartialEq)]
@@ -44,7 +44,7 @@ const TAG_INT_ARRAY_END: u8 = 17;
 const TAG_LONG_ARRAY_START: u8 = 18;
 const TAG_LONG_ARRAY_END: u8 = 19;
 
-/// Hash used for components this plugin can't encode (ViaVersion's value, so behaviour matches).
+/// Hash used for components this plugin can't encode (a fixed sentinel value).
 pub const UNKNOWN_HASH: i32 = 399_825_415;
 
 fn crc32c_table() -> &'static [u32; 256] {
@@ -202,7 +202,7 @@ pub fn full_key(s: &str) -> String {
 mod tests {
     use super::*;
 
-    // Expected values from ViaVersion's ItemHashTest (computed by the vanilla algorithm).
+    // Expected values computed with the vanilla algorithm.
     #[test]
     fn use_cooldown() {
         let v = MapB::new().put("seconds", Hv::Float(0.5)).put("cooldown_group", ident(":stick")).build();

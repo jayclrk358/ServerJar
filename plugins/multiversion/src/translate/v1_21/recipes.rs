@@ -1,4 +1,4 @@
-//! Recipes 1.21.2 → 1.21, following ViaBackwards' `RecipeStorage`.
+//! Recipes 1.21.2 → 1.21, following the vanilla changes.
 //!
 //! 1.21.2 servers only send recipe *displays* for unlocked recipes (RECIPE_BOOK_ADD) plus the
 //! stonecutter list (UPDATE_RECIPES). 1.21 clients expect full recipes in UPDATE_RECIPES and the

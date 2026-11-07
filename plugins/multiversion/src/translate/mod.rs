@@ -2,7 +2,7 @@
 //!
 //! A `Translator` converts packets one version step (e.g. 26.3 ↔ 26.2). A `Chain` stacks the
 //! steps needed for a given client, newest first for clientbound and oldest first for
-//! serverbound, exactly like ViaVersion's protocol pipeline.
+//! serverbound, one version step at a time.
 
 pub mod data_26_2;
 pub mod data_26_1;

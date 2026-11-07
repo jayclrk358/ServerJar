@@ -1,8 +1,6 @@
 //! Packet ids for 1.21.4 (protocol 769, server side) and 1.21.2/1.21.3 (protocol 768, client side).
-//! Source: ViaVersion's `ClientboundPackets1_21_2` (shared by both versions),
-//! `ServerboundPackets1_21_4` and `ServerboundPackets1_21_2`, plus the configuration enums
-//! `ClientboundConfigurationPackets1_21` / `ServerboundConfigurationPackets1_20_5` (identical on
-//! both sides).
+//! Source: the vanilla packet lists. Clientbound play and configuration packets are identical in
+//! both versions; serverbound play ids differ.
 
 /// 1.21.4 ids. Clientbound ids (play and configuration) are the same in 1.21.2.
 pub mod new {
@@ -93,7 +91,7 @@ pub fn play_serverbound(id: i32) -> Option<i32> {
 mod tests {
     use super::*;
     #[test]
-    fn serverbound_shift_matches_viaversion_enums() {
+    fn serverbound_shift_matches_vanilla_packet_lists() {
         // 1.21.2 PING_REQUEST 0x23 -> 1.21.4 0x24; PLAYER_INPUT 0x28 -> 0x29; PONG 0x29 -> 0x2B
         assert_eq!(play_serverbound(0x23), Some(0x24));
         assert_eq!(play_serverbound(0x28), Some(0x29));

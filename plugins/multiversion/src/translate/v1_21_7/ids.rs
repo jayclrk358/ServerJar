@@ -1,5 +1,5 @@
 //! Packet ids for 1.21.9 (protocol 773, "new") and 1.21.7/1.21.8 (protocol 772, "old").
-//! Source: ViaVersion's `ClientboundPackets1_21_9` / `ClientboundPackets1_21_6` enums (ordinal = id).
+//! Source: the vanilla packet lists (position = id).
 //!
 //! 1.21.9 inserted DEBUG_BLOCK_VALUE..DEBUG_EVENT (26-29) and GAME_TEST_HIGHLIGHT_POS (39) into the
 //! clientbound play list and appended CODE_OF_CONDUCT (19) / ACCEPT_CODE_OF_CONDUCT (9) to the

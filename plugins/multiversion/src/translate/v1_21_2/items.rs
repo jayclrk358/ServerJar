@@ -478,7 +478,7 @@ impl Items {
     }
 
     /// 1.21.4 `{floats, flags, strings, colors}` ↔ 1.21.2 single varint. Going down, the first
-    /// float is the common replacement (as ViaBackwards does); with no floats the component is
+    /// float is the common replacement; with no floats the component is
     /// dropped. Going up, the varint becomes a single float.
     fn custom_model_data(&self, r: &mut Reader, w: &mut Writer) -> Result<bool> {
         if self.dir == Dir::ToServer {
@@ -607,7 +607,7 @@ impl Items {
     }
 }
 
-/// Trim material `item_model_index` values from vanilla 1.21.2 (ViaBackwards' table).
+/// Trim material `item_model_index` values from vanilla 1.21.2.
 pub fn item_model_index(asset: &str) -> f32 {
     match asset.strip_prefix("minecraft:").unwrap_or(asset) {
         "amethyst" => 1.0,

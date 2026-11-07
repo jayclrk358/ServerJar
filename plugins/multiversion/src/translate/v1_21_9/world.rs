@@ -4,7 +4,7 @@
 //! block entity types are identical in both versions. What changed is the registry content:
 //! 1.21.11 moved many dimension type and biome fields into "environment attributes", added the
 //! timeline and zombie nautilus variant registries and new enchantment effects. The handlers
-//! follow ViaBackwards' Protocol1_21_11To1_21_9.
+//! follow the vanilla changes.
 
 use super::items::Items;
 use crate::proto::buf::{Reader, Result, Writer};

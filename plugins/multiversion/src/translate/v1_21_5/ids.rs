@@ -1,5 +1,5 @@
 //! Packet ids for 1.21.6 (protocol 771, the server side of this step) and 1.21.5 (protocol 770,
-//! the client side). Source: ViaVersion's ClientboundPackets1_21_6 / ClientboundPackets1_21_5 and
+//! the client side). Source: the vanilla packet lists for both versions and
 //! the matching serverbound and configuration enums (the enum ordinal is the packet id).
 
 pub mod new {

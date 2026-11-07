@@ -1,4 +1,4 @@
-//! Text components 1.21.5 → 1.21.4 (ViaBackwards' `ComponentRewriter1_21_5`).
+//! Text components 1.21.5 → 1.21.4 .
 //!
 //! 1.21.5 renamed `hoverEvent`/`clickEvent` to `hover_event`/`click_event` and flattened their
 //! contents; block entities store names and sign lines as NBT instead of JSON strings.

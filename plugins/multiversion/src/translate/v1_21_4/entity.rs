@@ -1,4 +1,4 @@
-//! Entities 1.21.5 → 1.21.4 (ViaBackwards' `EntityPacketRewriter1_21_5`): spawning, entity data,
+//! Entities 1.21.5 → 1.21.4 : spawning, entity data,
 //! saddles (an equipment slot in 1.21.5, entity data before), teams.
 
 use std::collections::HashMap;

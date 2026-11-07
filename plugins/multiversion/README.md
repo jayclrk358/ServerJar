@@ -1,9 +1,13 @@
 # multiversion: a Pumpkin plugin that lets other Minecraft versions join
 
+<img src="market/logo.png" width="96" align="right" alt="Multiversion logo">
+
 `multiversion.wasm` is a Pumpkin plugin. Once installed, players on other Minecraft Java versions
 can join your 26.3 server: the plugin speaks their protocol version and translates every packet to
 and from Pumpkin's. It needs no Java, no separate proxy process and no extra port to open. Everything
 runs inside the server, as a WebAssembly plugin, configured by one `config.toml`.
+
+![Supported versions](market/screenshot-versions.png)
 
 | Client version | Status |
 |---|---|
@@ -46,10 +50,9 @@ player (26.2) ──► plugin listener :25565 ──► translator chain ──
    verified profile, signed with the shared secret. Pumpkin's built-in Velocity forwarding verifies
    it, so players keep their real UUID, skin and IP and nobody can forge an identity.
 3. **Translation.** Configuration and play packets go through a chain of per-version translators
-   (26.3→26.2, later 26.2→26.1, ...), each converting one version step like ViaVersion's protocol
-   pipeline. Registry id tables (blocks, items, entities, sounds, particles, data components,
-   argument types) are generated from ViaVersion's mapping files; structural changes come from
-   reading ViaBackwards' equivalent protocol.
+   (26.3→26.2→26.1→…→1.21), each converting one version step. Registry id tables (blocks, items,
+   entities, sounds, particles, data components, argument types) are generated from per-version
+   registry mapping data; structural changes follow the vanilla protocol differences between steps.
 
 ## Install
 
@@ -115,7 +118,7 @@ the kick message if they try anyway.
 
 ## What's translated for 26.2 clients
 
-Done, following ViaBackwards' 26.3→26.2 protocol:
+Done, following the vanilla 26.3→26.2 protocol changes:
 
 - packet id remapping for play, configuration and serverbound packets (26.3 added
   `add_transient_block`, `post_effects`, `swing_animation`, `punch`, `spectator_action`);
@@ -155,16 +158,17 @@ src/crypto.rs         RSA key pair, server hash, HMAC
 src/auth.rs           Mojang hasJoined over WASI HTTP
 src/conn.rs           per-connection state machine (handshake → status/login → play relay)
 src/proxy.rs          reactor handler: sockets ↔ connections, timeouts
-src/translate/        Translator trait + chain; v26_2/ = 26.3 ↔ 26.2 step
-tools/gen_mappings.py regenerates src/translate/data_26_2.rs from ViaVersion's mapping files
+src/translate/        Translator trait + chain; one module per version step (v26_2/ = 26.3 ↔ 26.2, ...)
+tools/gen_mappings.py regenerates the src/translate/data_*.rs id tables
 ```
 
 ### Adding the next version step
 
-1. Clone https://github.com/ViaVersion/Mappings and run
-   `tools/gen_mappings.py <repo> 26.2 26.1 src/translate/data_26_1.rs`.
-2. Create `src/translate/v26_1/` after the pattern of `v26_2/`, using ViaBackwards'
-   `Protocol26_2To26_1` as the list of what changed.
+1. Get per-version registry mapping files (`mappings/mapping-<version>.json` id lists and
+   `mappings/diff/mapping-<new>to<old>.json` fallbacks) and run
+   `tools/gen_mappings.py <dir> <new> <old> src/translate/data_<old>.rs`.
+2. Create `src/translate/v<old>/` after the pattern of the existing steps, covering every packet,
+   registry and data component that changed between the two versions.
 3. Register it in `translate::make_step` and add the version to `proto::version::KNOWN`.
 
 ## Testing
@@ -177,4 +181,4 @@ has not been connected yet; see the main README for status.
 
 ## Licence
 
-GPL-3.0 (same as this repo and as ViaVersion, whose generated mapping data this plugin embeds).
+GPL-3.0. See [LICENSE](LICENSE).

@@ -1,6 +1,6 @@
 //! Item stacks and their data components, 1.21.7 ↔ 1.21.6.
 //!
-//! Both versions share the same 96 data components with identical wire formats (ViaVersion uses
+//! Both versions share the same 96 data components with identical wire formats (vanilla uses
 //! `VersionedTypes.V1_21_6` on both sides), so nothing is dropped or converted. Every component is
 //! still parsed with its exact 1.21.6 codec, because item and sound ids inside them must be remapped:
 //! 1.21.7 added the "Lava Chicken" music disc and its sound, which shifts every later id.

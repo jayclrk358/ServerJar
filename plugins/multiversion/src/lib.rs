@@ -64,7 +64,7 @@ mod plugin {
             crate::log::info(&format!(
                 "listening on {} for Minecraft {} clients, forwarding to Pumpkin at {}",
                 config.listen.address,
-                crate::translate::supported_range(),
+                crate::translate::allowed_range(&config.versions),
                 config.backend.address
             ));
             if config.backend.forwarding_secret.is_empty() {

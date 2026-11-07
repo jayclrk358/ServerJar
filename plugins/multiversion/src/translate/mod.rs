@@ -16,6 +16,7 @@ pub mod data_1_21_2;
 pub mod data_1_21;
 pub mod v26_2;
 pub mod v26_1;
+pub mod v1_21_4;
 pub mod v1_21_5;
 pub mod v1_21_7;
 pub mod v1_21_2;
@@ -118,6 +119,7 @@ fn make_step(from: Version) -> Option<Box<dyn Translator>> {
     match from.protocol {
         777 => Some(Box::new(v26_2::V26_3To26_2::new())),
         776 => Some(Box::new(v26_1::V26_2To26_1::new())),
+        770 => Some(Box::new(v1_21_4::V1_21_5To1_21_4::new())),
         771 => Some(Box::new(v1_21_5::V1_21_6To1_21_5::new())),
         773 => Some(Box::new(v1_21_7::V1_21_9To1_21_7::new())),
         769 => Some(Box::new(v1_21_2::V1_21_4To1_21_2::new())),

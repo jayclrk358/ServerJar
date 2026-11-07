@@ -115,6 +115,10 @@ forwarding_secret = "$SECRET"
 
 [auth]
 online_mode = true
+
+[versions]
+allow = ["*"]   # every version the plugin can translate (1.21 to 26.3)
+deny = []       # e.g. ["1.21", "1.21.2-1.21.4"]
 TOML
 fi
 say "Configuring pumpkin.toml"

@@ -111,7 +111,7 @@ impl Default for Status {
 impl Default for Versions {
     fn default() -> Self {
         Self {
-            allow: Vec::new(),
+            allow: vec!["*".into()],
             deny: Vec::new(),
             kick_unsupported_message: "This server supports Minecraft {versions}. You are on {client}.".into(),
         }
@@ -131,7 +131,8 @@ pub const FILE_HEADER: &str = "# multiversion: lets other Minecraft versions joi
 #   [networking.proxy.velocity]  enabled = true   secret = \"<same as forwarding_secret below>\"\n\
 #\n\
 # [versions] chooses who may join. Entries are a version (\"1.21.4\"), a family (\"1.21.*\") or a\n\
-# range (\"1.21.5-26.3\"). allow = [] means every version the plugin can translate; deny wins over\n\
+# range (\"1.21.5-26.3\"). allow = [\"*\"] (the default) or [] means every version the plugin can\n\
+# translate; deny wins over\n\
 # allow. Versions that share a protocol count as one: 1.21.1 = 1.21, 1.21.3 = 1.21.2, 1.21.8 = 1.21.7,\n\
 # 1.21.10 = 1.21.9. Example: allow = [\"1.21.*\", \"26.3\"], deny = [\"1.21\"].\n\n";
 
@@ -268,5 +269,7 @@ mod version_selector_tests {
         assert!(!cfg.permits(v("1.21")));
         assert!(!cfg.permits(v("26.2")));
         assert!(Versions::default().permits(v("1.21.2")));
+        assert!(Versions::default().permits(v("26.3")));
+        assert!(Versions { allow: Vec::new(), ..Default::default() }.permits(v("1.21")));
     }
 }

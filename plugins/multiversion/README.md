@@ -98,7 +98,7 @@ prevent_proxy_connections = false  # pass the client IP to Mojang
 version_name = ""                  # server-list text; empty = the allowed range, e.g. "1.21-26.3"
 
 [versions]
-allow = []                         # empty = every version the plugin can translate
+allow = ["*"]                      # default: every version the plugin can translate
 deny = []                          # refused even if allowed above
 # Entries: a version "1.21.4", a family "1.21.*", or a range "1.21.5-26.3" (either end optional).
 # Patch releases that share a protocol count as one: 1.21.1 = 1.21, 1.21.3 = 1.21.2,

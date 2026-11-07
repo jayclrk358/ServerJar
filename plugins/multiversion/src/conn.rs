@@ -545,6 +545,9 @@ impl Connection {
                     let mut r = Reader::new(&payload);
                     let reason = r.string().unwrap_or("{}").to_string();
                     out.push(Action::Log(format!("backend refused login for {}: {reason}", self.username)));
+                    if reason.contains("Unable to verify player details") {
+                        out.push(Action::Log("Pumpkin rejected the forwarded identity: [networking.proxy.velocity] secret in pumpkin.toml must equal forwarding_secret in plugins/data/multiversion/config.toml (see plugins/data/multiversion/pumpkin-settings.txt), then restart".into()));
+                    }
                     // Forward the reason as-is (JSON text component is valid for all versions).
                     let pkt = Packet::new(ids::LOGIN_C_DISCONNECT, payload);
                     self.client_pkt(&pkt, out);

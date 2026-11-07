@@ -124,3 +124,30 @@ pub fn supported_range() -> String {
     let low = lowest_supported();
     if low == BACKEND { BACKEND.name() } else { format!("{}-{}", low.name(), BACKEND.name()) }
 }
+
+/// Versions that both have a translator and pass the config's allow/deny lists, newest first.
+pub fn allowed_versions(cfg: &crate::config::Versions) -> Vec<Version> {
+    KNOWN.iter().map(|k| Version { protocol: k.protocol }).filter(|v| is_supported(*v) && cfg.permits(*v)).collect()
+}
+
+/// Human-readable list of the allowed versions, contiguous runs collapsed ("1.21-1.21.4, 26.2-26.3").
+pub fn allowed_range(cfg: &crate::config::Versions) -> String {
+    let mut vs = allowed_versions(cfg);
+    vs.sort();
+    let supported: Vec<Version> = {
+        let mut s: Vec<Version> = KNOWN.iter().map(|k| Version { protocol: k.protocol }).filter(|v| is_supported(*v)).collect();
+        s.sort();
+        s
+    };
+    let mut runs: Vec<(Version, Version)> = Vec::new();
+    for v in vs {
+        match runs.last_mut() {
+            Some((_, hi)) if supported.iter().position(|s| *s == v) == supported.iter().position(|s| s == hi).map(|i| i + 1) => *hi = v,
+            _ => runs.push((v, v)),
+        }
+    }
+    if runs.is_empty() {
+        return "no version".into();
+    }
+    runs.iter().map(|(lo, hi)| if lo == hi { lo.name() } else { format!("{}-{}", lo.name(), hi.name()) }).collect::<Vec<_>>().join(", ")
+}

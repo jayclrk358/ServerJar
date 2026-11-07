@@ -85,7 +85,11 @@ prevent_proxy_connections = false  # pass the client IP to Mojang
 version_name = ""                  # server-list text; empty = "26.2-26.3"
 
 [versions]
-allow = []                         # e.g. ["26.2", "26.3"]; empty = all supported
+allow = []                         # empty = every version the plugin can translate
+deny = []                          # refused even if allowed above
+# Entries: a version "1.21.4", a family "1.21.*", or a range "1.21.5-26.3" (either end optional).
+# Patch releases that share a protocol count as one: 1.21.1 = 1.21, 1.21.3 = 1.21.2,
+# 1.21.8 = 1.21.7, 1.21.10 = 1.21.9. Example: allow = ["1.21.*", "26.3"], deny = ["1.21"].
 kick_unsupported_message = "This server supports Minecraft {versions}. You are on {client}."
 
 [limits]

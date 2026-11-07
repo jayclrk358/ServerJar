@@ -54,8 +54,11 @@ pub struct Status {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Versions {
-    /// Client versions allowed to join, by name (e.g. "26.2"). Empty = every supported version.
+    /// Client versions allowed to join. Empty = every version the plugin can translate.
+    /// Entries: a version ("26.2"), a family ("1.21.*") or a range ("1.21.5-26.3").
     pub allow: Vec<String>,
+    /// Versions refused even if `allow` would admit them. Same syntax as `allow`.
+    pub deny: Vec<String>,
     pub kick_unsupported_message: String,
 }
 
@@ -109,6 +112,7 @@ impl Default for Versions {
     fn default() -> Self {
         Self {
             allow: Vec::new(),
+            deny: Vec::new(),
             kick_unsupported_message: "This server supports Minecraft {versions}. You are on {client}.".into(),
         }
     }
@@ -124,7 +128,12 @@ pub const FILE_HEADER: &str = "# multiversion: lets other Minecraft versions joi
 # Pumpkin at [backend].address. In pumpkin.toml set:\n\
 #   [networking.java]            address = \"127.0.0.1:25566\"   online_mode = false\n\
 #   [networking.proxy]           enabled = true\n\
-#   [networking.proxy.velocity]  enabled = true   secret = \"<same as forwarding_secret below>\"\n\n";
+#   [networking.proxy.velocity]  enabled = true   secret = \"<same as forwarding_secret below>\"\n\
+#\n\
+# [versions] chooses who may join. Entries are a version (\"1.21.4\"), a family (\"1.21.*\") or a\n\
+# range (\"1.21.5-26.3\"). allow = [] means every version the plugin can translate; deny wins over\n\
+# allow. Versions that share a protocol count as one: 1.21.1 = 1.21, 1.21.3 = 1.21.2, 1.21.8 = 1.21.7,\n\
+# 1.21.10 = 1.21.9. Example: allow = [\"1.21.*\", \"26.3\"], deny = [\"1.21\"].\n\n";
 
 impl Config {
     pub fn load_or_create(path: &str) -> Result<Self, String> {
@@ -173,4 +182,91 @@ pub fn pumpkin_snippet(cfg: &Config) -> String {
         backend_port = cfg.backend.address.rsplit(':').next().unwrap_or("25566"),
         secret = cfg.backend.forwarding_secret.replace('\\', "\\\\").replace('"', "\\\""),
     )
+}
+
+impl Versions {
+    /// Whether a client version passes the allow/deny lists (translator support is checked separately).
+    pub fn permits(&self, v: crate::proto::version::Version) -> bool {
+        if self.deny.iter().any(|e| selector_matches(e, v)) {
+            return false;
+        }
+        self.allow.is_empty() || self.allow.iter().any(|e| selector_matches(e, v))
+    }
+}
+
+/// Resolves a version name, including names of releases that share a protocol with a listed one
+/// (1.21.1 -> 1.21, 1.21.3 -> 1.21.2, 1.21.8 -> 1.21.7, 1.21.10 -> 1.21.9).
+fn resolve(name: &str) -> Option<crate::proto::version::Version> {
+    use crate::proto::version::Version;
+    let name = name.trim().trim_start_matches("minecraft ").trim_start_matches('v');
+    if let Some(v) = Version::from_name(name) {
+        return Some(v);
+    }
+    if let Ok(p) = name.parse::<i32>() {
+        return Some(Version { protocol: p });
+    }
+    // Patch release sharing the protocol of an earlier one: walk the patch number down.
+    let mut parts: Vec<u32> = name.split('.').map(|x| x.parse().ok()).collect::<Option<_>>()?;
+    if parts.len() != 3 {
+        return None;
+    }
+    while parts[2] > 0 {
+        parts[2] -= 1;
+        let candidate = if parts[2] == 0 { format!("{}.{}", parts[0], parts[1]) } else { format!("{}.{}.{}", parts[0], parts[1], parts[2]) };
+        if let Some(v) = Version::from_name(&candidate) {
+            return Some(v);
+        }
+    }
+    None
+}
+
+/// `"26.2"`, `"1.21.*"` (family) or `"1.21.5-26.3"` (inclusive range, either end may be omitted).
+pub fn selector_matches(selector: &str, v: crate::proto::version::Version) -> bool {
+    let sel = selector.trim();
+    if sel == "*" || sel.eq_ignore_ascii_case("all") {
+        return true;
+    }
+    if let Some(family) = sel.strip_suffix(".*") {
+        let name = v.name();
+        return name == family || name.starts_with(&format!("{family}."));
+    }
+    if let Some((lo, hi)) = sel.split_once('-') {
+        let lo_ok = lo.trim().is_empty() || resolve(lo).is_some_and(|l| v.protocol >= l.protocol);
+        let hi_ok = hi.trim().is_empty() || resolve(hi).is_some_and(|h| v.protocol <= h.protocol);
+        return lo_ok && hi_ok && (resolve(lo).is_some() || resolve(hi).is_some());
+    }
+    resolve(sel) == Some(v)
+}
+
+#[cfg(test)]
+mod version_selector_tests {
+    use super::*;
+    use crate::proto::version::Version;
+    fn v(name: &str) -> Version {
+        Version::from_name(name).unwrap()
+    }
+    #[test]
+    fn selectors() {
+        assert!(selector_matches("26.2", v("26.2")));
+        assert!(!selector_matches("26.2", v("26.3")));
+        assert!(selector_matches("1.21.*", v("1.21.5")));
+        assert!(selector_matches("1.21.*", v("1.21")));
+        assert!(!selector_matches("1.21.*", v("26.1")));
+        assert!(selector_matches("1.21.5-26.1", v("1.21.9")));
+        assert!(!selector_matches("1.21.5-26.1", v("26.2")));
+        assert!(selector_matches("-1.21.4", v("1.21")));
+        assert!(selector_matches("26.2-", v("26.3")));
+        assert!(selector_matches("1.21.1", v("1.21")));
+        assert!(selector_matches("1.21.10", v("1.21.9")));
+        assert!(!selector_matches("bogus", v("26.3")));
+    }
+    #[test]
+    fn allow_and_deny() {
+        let cfg = Versions { allow: vec!["1.21.*".into(), "26.3".into()], deny: vec!["1.21".into()], ..Default::default() };
+        assert!(cfg.permits(v("1.21.4")));
+        assert!(cfg.permits(v("26.3")));
+        assert!(!cfg.permits(v("1.21")));
+        assert!(!cfg.permits(v("26.2")));
+        assert!(Versions::default().permits(v("1.21.2")));
+    }
 }

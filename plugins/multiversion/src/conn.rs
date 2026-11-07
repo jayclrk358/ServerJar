@@ -229,13 +229,13 @@ impl Connection {
                 Ok(())
             }
             2 | 3 => {
-                if !translate::is_supported(self.client_version) || !shared.config.versions.allow.is_empty() && !shared.config.versions.allow.iter().any(|n| Version::from_name(n) == Some(self.client_version)) {
+                if !translate::is_supported(self.client_version) || !shared.config.versions.permits(self.client_version) {
                     self.phase = Phase::LoginStart; // so the kick is delivered as a login disconnect
                     let msg = shared
                         .config
                         .versions
                         .kick_unsupported_message
-                        .replace("{versions}", &translate::supported_range())
+                        .replace("{versions}", &translate::allowed_range(&shared.config.versions))
                         .replace("{client}", &self.client_version.name());
                     return Err(msg);
                 }
@@ -301,7 +301,7 @@ impl Connection {
     }
 
     fn version_name(&self, shared: &Shared) -> String {
-        if shared.config.status.version_name.is_empty() { translate::supported_range() } else { shared.config.status.version_name.clone() }
+        if shared.config.status.version_name.is_empty() { translate::allowed_range(&shared.config.versions) } else { shared.config.status.version_name.clone() }
     }
 
     fn finish_status(&mut self, backend_json: Option<&str>, shared: &Shared, out: &mut Vec<Action>) {
@@ -309,7 +309,7 @@ impl Connection {
             .and_then(|j| serde_json::from_str(j).ok())
             .unwrap_or_else(|| serde_json::from_str(&self.status_fallback_json(shared)).unwrap());
         // Report a protocol the client accepts (its own, if we can translate it), and our version range.
-        let supported = translate::is_supported(self.client_version);
+        let supported = translate::is_supported(self.client_version) && shared.config.versions.permits(self.client_version);
         let protocol = if supported { self.client_version.protocol } else { BACKEND.protocol };
         json["version"] = serde_json::json!({ "name": self.version_name(shared), "protocol": protocol });
         let mut w = Writer::new();

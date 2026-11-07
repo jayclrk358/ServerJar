@@ -195,6 +195,12 @@ impl Connection {
             }
             Phase::AwaitClientLoginAck => {
                 if id == ids::LOGIN_S_ACKNOWLEDGED {
+                    let how = match &self.chain {
+                        Some(c) if !c.is_passthrough() => format!("translated to {}", crate::proto::version::BACKEND.name()),
+                        _ => "native".to_string(),
+                    };
+                    let auth = if shared.config.auth.online_mode { "online" } else { "offline" };
+                    out.push(Action::Log(format!("{} joined ({how}, {auth} mode)", self.describe())));
                     // Both sides enter configuration. Tell the backend, release held packets.
                     self.phase = Phase::Configuration;
                     self.state = State::Configuration;

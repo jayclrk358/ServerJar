@@ -1,0 +1,24 @@
+diff --git a/crates/pumpkin-core/src/entity/mod.rs b/crates/pumpkin-core/src/entity/mod.rs
+index 7fc1673..29b629e 100644
+--- a/crates/pumpkin-core/src/entity/mod.rs
++++ b/crates/pumpkin-core/src/entity/mod.rs
+@@ -944,7 +944,9 @@ pub trait EntityBase: Send + Sync + std::any::Any {
+             dx *= PUSH_STRENGTH;
+             dz *= PUSH_STRENGTH;
+ 
+-            if !self_entity.has_passengers() && self.is_pushable() {
++            // Players are pushed by their own client, as in vanilla. Sending a push to them also
++            // sends their stale server-side vertical velocity, which flings Bedrock players upward.
++            if !self_entity.has_passengers() && self.is_pushable() && self.get_player().is_none() {
+                 let mut vel = self_entity.velocity.load();
+                 vel.x -= dx;
+                 vel.z -= dz;
+@@ -952,7 +954,7 @@ pub trait EntityBase: Send + Sync + std::any::Any {
+                 self_entity.velocity_dirty.store(true, Ordering::SeqCst);
+             }
+ 
+-            if !other_entity.has_passengers() && entity.is_pushable() {
++            if !other_entity.has_passengers() && entity.is_pushable() && entity.get_player().is_none() {
+                 let mut vel = other_entity.velocity.load();
+                 vel.x += dx;
+                 vel.z += dz;

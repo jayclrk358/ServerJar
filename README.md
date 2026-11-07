@@ -165,6 +165,7 @@ Measured with 100 walking bot players (60 s hold, same PC, localhost):
 | Patch | Why |
 |---|---|
 | `0002-keep-serial-entity-schedule-through-small-count-changes` | Pumpkin tries to tick separate groups ("islands") of entities in parallel, and backs off for 20 ticks when a plan isn't worth it. But it dropped that back-off whenever the entity count changed, which with players around is almost every tick, as mobs spawn and despawn. Profiling with 100 players showed it re-planning on ~35% of ticks and throwing every plan away (partitioning ran out of its budget each time). Now only a change of more than 1/8 of the count cuts the back-off short. Tick order is unchanged: those ticks ran serially anyway. Covered by Pumpkin's unit tests; not yet measured under load. |
+| `0003-let-clients-push-their-own-player` | Walking into another player flung Bedrock players 3-4 blocks into the air. When two entities overlap, Pumpkin's server pushed them apart and sent the result to players, together with the player's server-side vertical velocity, which Pumpkin doesn't keep current for Bedrock players. Vanilla never pushes players from the server: each client pushes its own player. Now the server still pushes mobs, but leaves players to their own client. Type-checked; not yet tested with a Bedrock client. |
 
 ### Where tick time goes (for future patches)
 

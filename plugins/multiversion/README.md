@@ -8,7 +8,20 @@ runs inside the server, as a WebAssembly plugin, configured by one `config.toml`
 | Client version | Status |
 |---|---|
 | 26.3 (protocol 777) | native, passed through untouched |
-| 26.2 (protocol 776) | translated (first translator; see "What's translated") |
+| 26.2 (protocol 776) | translated |
+| 26.1 (protocol 775) | translated |
+| 1.21.11 (protocol 774) | translated |
+| 1.21.9 / 1.21.10 (protocol 773) | translated |
+| 1.21.7 / 1.21.8 (protocol 772) | translated |
+| 1.21.6 (protocol 771) | translated |
+| 1.21.5 (protocol 770) | translated |
+| 1.21.4 (protocol 769) | translated |
+| 1.21.2 / 1.21.3 (protocol 768) | translated |
+| 1.21 / 1.21.1 (protocol 767) | translated |
+
+Content an older client doesn't have shows as its nearest equivalent: new mobs as similar old mobs,
+new items and blocks as similar old ones. Translation has been checked with unit tests on hand-built
+packets; report anything that disconnects a real client.
 | 26.1 and older | not yet: each version step is its own translator in `src/translate/` |
 
 ## How it works
@@ -82,7 +95,7 @@ session_server = "https://sessionserver.mojang.com"
 prevent_proxy_connections = false  # pass the client IP to Mojang
 
 [status]
-version_name = ""                  # server-list text; empty = "26.2-26.3"
+version_name = ""                  # server-list text; empty = the allowed range, e.g. "1.21-26.3"
 
 [versions]
 allow = []                         # empty = every version the plugin can translate

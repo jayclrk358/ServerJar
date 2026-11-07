@@ -59,7 +59,7 @@ jobs:
           | \`Mineversed-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + multiversion plugin. |
           | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
           | \`Mineversed-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
-          | \`multiversion.wasm\` | Pumpkin plugin that lets other client versions join (26.2 so far). Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |
+          | \`multiversion.wasm\` | Pumpkin plugin that lets 1.21 to 26.2 clients join. Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |
 
           Server binaries are attached when their builds finish (about 30 minutes after the plugin).
           Built for x86-64-v3 CPUs (AVX2, roughly 2015 or newer).

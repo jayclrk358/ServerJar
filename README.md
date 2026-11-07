@@ -14,8 +14,7 @@ This repo adds performance patches and a tuned low-resource config on top of it.
 | 100 walking players | – | 20 TPS, ~1.7 cores, ~600 MB peak |
 
 Target: **Minecraft Java 26.3** (protocol 777). Other client versions can join through the
-[`multiversion` plugin](plugins/multiversion/README.md) (26.2 so far, more versions as translators
-are added). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
+[`multiversion` plugin](plugins/multiversion/README.md) (every release from 1.21 to 26.2). Plugin compatibility (Bukkit/Paper) isn't a goal yet.
 
 ## What's in here
 
@@ -125,8 +124,8 @@ localhost; reach it with `ssh -L 8080:127.0.0.1:8080 user@vps`. Details in [`pan
 
 Pumpkin only speaks 26.3. The `multiversion` plugin handles the rest by itself: it listens on the
 public port, speaks the client's own version, verifies the player with Mojang, logs into Pumpkin on a
-localhost port and forwards the real UUID, skin and IP with a signed Velocity handshake. Supported
-today: 26.3 (native) and 26.2 (translated); older versions are added one translator at a time.
+localhost port and forwards the real UUID, skin and IP with a signed Velocity handshake. Supported:
+26.3 (native) and every release from 1.21 to 26.2 (translated).
 
 ```bash
 cp multiversion.wasm server/plugins/      # from the release, or ./plugins/multiversion/build.sh

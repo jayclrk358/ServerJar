@@ -80,6 +80,8 @@ def table(key, fallback_default=0, blockstate=False):
 sections = []
 stats = []
 def emit(name, key, fallback_default=0, blockstate=False):
+    if key not in N or key not in O:
+        stats.append(f"// {key}: not present in both versions, table omitted"); return
     tbl, unmapped = table(key, fallback_default, blockstate)
     stats.append(f"// {key}: {len(N[key])} ids, {len(unmapped)} with no mapping (fallback {fallback_default}){': ' + ', '.join(unmapped[:8]) + ('...' if len(unmapped) > 8 else '') if unmapped else ''}")
     rows = ",".join(str(x) for x in tbl)
@@ -100,7 +102,8 @@ emit("RECIPE_SERIALIZERS", "recipe_serializers", fallback_default=0)
 emit("SLOT_DISPLAYS", "slot_displays", fallback_default=0)
 sections.append("pub static NEW_ARGUMENT_TYPE_NAMES: [&str; %d] = [%s];" % (len(N["argumenttypes"]), ",".join(json.dumps(n) for n in N["argumenttypes"])))
 sections.append("pub static OLD_ARGUMENT_TYPE_NAMES: [&str; %d] = [%s];" % (len(O["argumenttypes"]), ",".join(json.dumps(n) for n in O["argumenttypes"])))
-sections.append("pub static NEW_SLOT_DISPLAY_NAMES: [&str; %d] = [%s];" % (len(N["slot_displays"]), ",".join(json.dumps(n) for n in N["slot_displays"])))
+if "slot_displays" in N:
+    sections.append("pub static NEW_SLOT_DISPLAY_NAMES: [&str; %d] = [%s];" % (len(N["slot_displays"]), ",".join(json.dumps(n) for n in N["slot_displays"])))
 sections.append("pub static NEW_ENTITY_NAMES: [&str; %d] = [%s];" % (len(N["entities"]), ",".join(json.dumps(n) for n in N["entities"])))
 sections.append("pub static NEW_PARTICLE_NAMES: [&str; %d] = [%s];" % (len(N["particles"]), ",".join(json.dumps(n) for n in N["particles"])))
 sections.append("pub static OLD_PARTICLE_NAMES: [&str; %d] = [%s];" % (len(O["particles"]), ",".join(json.dumps(n) for n in O["particles"])))
@@ -123,7 +126,18 @@ for name, key in [("ITEMS", "items"), ("BLOCKS", "blocks"), ("ENTITIES", "entiti
     emit_reverse(name, key)
 sections.append("pub static OLD_COMPONENT_NAMES: [&str; %d] = [%s];" % (len(O["data_component_type"]), ",".join(json.dumps(n) for n in O["data_component_type"])))
 sections.append("pub const BRICK_ITEM_NEW: u32 = %d;\npub const BRICK_ITEM_OLD: u32 = %d;" % (N["items"].index("brick"), O["items"].index("brick")))
-sections.append("pub const TEXT_DISPLAY_ENTITY_OLD: u32 = %d;\npub const FALLING_BLOCK_ENTITY_OLD: u32 = %d;\npub const CUSHION_ENTITY_NEW: u32 = %d;" % (O["entities"].index("text_display"), O["entities"].index("falling_block"), N["entities"].index("cushion")))
+sections.append("pub const TEXT_DISPLAY_ENTITY_OLD: u32 = %d;\npub const FALLING_BLOCK_ENTITY_OLD: u32 = %d;" % (O["entities"].index("text_display"), O["entities"].index("falling_block")))
+if "cushion" in N["entities"]:
+    sections.append("pub const CUSHION_ENTITY_NEW: u32 = %d;" % N["entities"].index("cushion"))
+# Names of every registry in both versions, so each step can look ids up by name.
+for key, const in [("entities", "OLD_ENTITY_NAMES"), ("items", "NEW_ITEM_NAMES"), ("items", "OLD_ITEM_NAMES"), ("blocks", "NEW_BLOCK_NAMES"), ("blocks", "OLD_BLOCK_NAMES"), ("sounds", "NEW_SOUND_NAMES"), ("sounds", "OLD_SOUND_NAMES"), ("attributes", "NEW_ATTRIBUTE_NAMES"), ("attributes", "OLD_ATTRIBUTE_NAMES"), ("blockentities", "NEW_BLOCK_ENTITY_NAMES"), ("blockentities", "OLD_BLOCK_ENTITY_NAMES")]:
+    src = N if const.startswith("NEW") else O
+    if key in src:
+        sections.append("pub static %s: [&str; %d] = [%s];" % (const, len(src[key]), ",".join(json.dumps(n) for n in src[key])))
+for key, const in [("recipe_serializers", "NEW_RECIPE_SERIALIZER_NAMES"), ("recipe_serializers", "OLD_RECIPE_SERIALIZER_NAMES"), ("menus", "NEW_MENU_NAMES"), ("menus", "OLD_MENU_NAMES"), ("enchantments", "NEW_ENCHANTMENT_NAMES"), ("enchantments", "OLD_ENCHANTMENT_NAMES")]:
+    src = N if const.startswith("NEW") else O
+    if key in src:
+        sections.append("pub static %s: [&str; %d] = [%s];" % (const, len(src[key]), ",".join(json.dumps(n) for n in src[key])))
 sections.append("pub const WHITE_CARPET_STATE_OLD: u32 = %d;" % O["blockstates"].index("white_carpet"))
 new_bs = {n: i for i, n in enumerate(N["blockstates"])}
 rbs = [new_bs.get(n, 0) for n in O["blockstates"]]

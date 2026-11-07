@@ -137,6 +137,13 @@ cp multiversion.wasm server/plugins/      # from the release, or ./plugins/multi
 `./plugins/multiversion/install.sh` does the copy and the `pumpkin.toml` edit for you if you prefer.
 Players connect to 25565 as before; only that port needs to be open.
 
+## Performance and debugging
+
+The `perfmon` plugin is installed alongside. `/perf` shows TPS over 5 s to 15 min, tick-time
+percentiles, lag spikes, entity counts per dimension and memory; `/perf report` writes everything
+to a file, and metrics are logged to `plugins/data/perfmon/metrics.csv` every minute. See
+[plugins/perfmon/README.md](plugins/perfmon/README.md).
+
 ## Patches
 
 | Patch | Why |

@@ -21,6 +21,7 @@
 
 # Plugin build output
 /plugins/multiversion/target/
+/plugins/perfmon/target/
 /plugins/multiversion/multiversion.wasm
 /server/.panel-auth.json
 /server/.panel-cert.pem

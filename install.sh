@@ -96,6 +96,13 @@ else
   say "No multiversion.wasm in this release yet: the server will accept 26.3 clients only. Re-run 'mc update' after the next release."
 fi
 
+# perfmon (performance and debug plugin): from the bundle, else the release asset; optional.
+if [[ -f "$B/plugins/perfmon/perfmon.wasm" ]]; then
+  install -m 644 "$B/plugins/perfmon/perfmon.wasm" "$MC_DIR/plugins/perfmon.wasm"
+elif PERF_URL="$(asset_url perfmon.wasm)" && [[ -n "$PERF_URL" ]] && curl -fsSL --retry 3 --max-time 120 -o "$TMP/perfmon.wasm" "$PERF_URL" 2>/dev/null; then
+  install -m 644 "$TMP/perfmon.wasm" "$MC_DIR/plugins/perfmon.wasm"
+fi
+
 # 3. plugin + pumpkin.toml ------------------------------------------------------------------------
 if [[ "$HAVE_PLUGIN" == "1" ]]; then
 CFG="$MC_DIR/plugins/data/multiversion/config.toml"
@@ -128,6 +135,7 @@ path, secret, port = sys.argv[1], sys.argv[2], sys.argv[3]
 wanted = {
     "plugins": {"enabled": "true", "allow_unsigned": "true", "verify_signatures": "false"},
     "plugins.overrides.multiversion": {"enabled": "true", "allowed_permissions": '["network.tcp", "http.outbound", "fs.read.data", "fs.write.data"]'},
+    "plugins.overrides.perfmon": {"allowed_permissions": '["sys.info", "fs.read.data", "fs.write.data"]'},
     "networking.java": {"address": '"127.0.0.1:25566"'},
     "networking.proxy": {"enabled": "true"},
     "networking.proxy.velocity": {"enabled": "true", "secret": '"' + secret.replace("\\", "\\\\").replace('"', '\\"') + '"'},
@@ -170,6 +178,10 @@ for line in lines:
     out.append(line)
 open(path, "w", encoding="utf-8", newline="\n").write("\n".join(out))
 PY
+fi
+# perfmon's permissions are pre-approved so Pumpkin doesn't stop at a console prompt.
+if [[ -f "$MC_DIR/plugins/perfmon.wasm" ]] && ! grep -q '^\[plugins.overrides.perfmon\]' "$MC_DIR/pumpkin.toml"; then
+  printf '\n[plugins.overrides.perfmon]\nallowed_permissions = ["sys.info", "fs.read.data", "fs.write.data"]\n' >> "$MC_DIR/pumpkin.toml"
 fi
 
 # 4. panel service ----------------------------------------------------------------------------------

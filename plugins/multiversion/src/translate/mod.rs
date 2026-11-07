@@ -5,7 +5,17 @@
 //! serverbound, exactly like ViaVersion's protocol pipeline.
 
 pub mod data_26_2;
+pub mod data_26_1;
+pub mod data_1_21_11;
+pub mod data_1_21_9;
+pub mod data_1_21_7;
+pub mod data_1_21_6;
+pub mod data_1_21_5;
+pub mod data_1_21_4;
+pub mod data_1_21_2;
+pub mod data_1_21;
 pub mod v26_2;
+pub mod v26_1;
 
 use crate::proto::version::{Version, BACKEND, KNOWN};
 
@@ -101,6 +111,7 @@ impl Chain {
 fn make_step(from: Version) -> Option<Box<dyn Translator>> {
     match from.protocol {
         777 => Some(Box::new(v26_2::V26_3To26_2::new())),
+        776 => Some(Box::new(v26_1::V26_2To26_1::new())),
         _ => None,
     }
 }

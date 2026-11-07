@@ -209,7 +209,7 @@ impl Misc {
         let mut r = Reader::new(payload);
         let mut w = Writer::with_capacity(payload.len());
         w.i16(r.i16()?);
-        items.item_stack(&mut r, &mut w)?;
+        items.length_prefixed_stack(&mut r, &mut w)?;
         Ok(w.into_inner())
     }
 

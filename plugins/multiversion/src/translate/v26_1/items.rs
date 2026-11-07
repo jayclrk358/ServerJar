@@ -223,6 +223,50 @@ impl Items {
         w.varint(self.item(id));
         self.components(r, w)
     }
+    /// Creative-slot stack (1.21.5+): like `item_stack`, but every added component value carries a
+    /// varint byte length.
+    pub fn length_prefixed_stack(&self, r: &mut Reader, w: &mut Writer) -> Result<()> {
+        let count = Self::copy_varint(r, w)?;
+        if count <= 0 {
+            return Ok(());
+        }
+        let id = r.varint()?;
+        w.varint(self.item(id));
+        let added = r.varint()?;
+        let removed = r.varint()?;
+        if added < 0 || removed < 0 || added + removed > 512 {
+            return Err(err("bad component counts"));
+        }
+        let mut body = Writer::new();
+        let mut kept_added = 0;
+        for _ in 0..added {
+            let ty = r.varint()?;
+            let len = r.varint()?;
+            let mut inner = Reader::new(r.bytes(len.max(0) as usize)?);
+            let name = self.source_component_name(ty).ok_or_else(|| err(&format!("unknown data component type {ty}")))?;
+            let mut value = Writer::new();
+            let keep = self.component_value(name, &mut inner, &mut value)?;
+            if let (true, Some(t)) = (keep, self.component_type(ty)) {
+                body.varint(t);
+                body.varint(value.buf.len() as i32);
+                body.raw(&value.buf);
+                kept_added += 1;
+            }
+        }
+        let mut removed_body = Writer::new();
+        let mut kept_removed = 0;
+        for _ in 0..removed {
+            if let Some(t) = self.component_type(r.varint()?) {
+                removed_body.varint(t);
+                kept_removed += 1;
+            }
+        }
+        w.varint(kept_added);
+        w.varint(kept_removed);
+        w.raw(&body.buf);
+        w.raw(&removed_body.buf);
+        Ok(())
+    }
     /// Item template (26.1+): id, count, components. Used in recipes, containers, advancements.
     pub fn item_template(&self, r: &mut Reader, w: &mut Writer) -> Result<()> {
         let id = r.varint()?;

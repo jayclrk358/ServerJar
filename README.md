@@ -26,9 +26,9 @@ Target: **Minecraft Java 26.3** (protocol 777). Other client versions can join t
 | `server/pumpkin.toml` | Low-resource config (see below). |
 | `server/start.bat` / `start.sh` | Starts the server. |
 | `server/pumpkin.service` | systemd unit for Linux. |
-| `plugins/multiversion/` | **Pumpkin plugin** (WebAssembly, Rust) that lets other Minecraft versions join: an in-process protocol-translating proxy with Mojang auth and identity forwarding. Drop in `multiversion.wasm`, apply the three `pumpkin.toml` settings it writes out, done. See [`plugins/multiversion/README.md`](plugins/multiversion/README.md). |
+| `plugins/perfmon/` | **perfmon** Pumpkin plugin: `/perf` for TPS, tick times, lag spikes, entities and memory. Also in its own repository, [jayclrk358/Perfmon](https://github.com/jayclrk358/Perfmon). |
 | `panel/` | Web panel to start/stop/restart the server, watch the console, send commands and edit files. Python standard library only; see [`panel/README.md`](panel/README.md). |
-| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads and `multiversion.wasm` on GitHub. |
+| `.github/workflows/release.yml` | Builds the Linux and Windows release downloads and `perfmon.wasm` on GitHub. |
 
 ## Quick start on a Linux VPS (one command)
 
@@ -127,8 +127,11 @@ public port, speaks the client's own version, verifies the player with Mojang, l
 localhost port and forwards the real UUID, skin and IP with a signed Velocity handshake. Supported:
 26.3 (native) and every release from 1.21 to 26.2 (translated).
 
+The plugin lives in its own repository, [jayclrk358/Multiversion](https://github.com/jayclrk358/Multiversion).
+The VPS installer downloads it from there automatically. To add it by hand:
+
 ```bash
-cp multiversion.wasm server/plugins/      # from the release, or ./plugins/multiversion/build.sh
+cp multiversion.wasm server/plugins/      # from github.com/jayclrk358/Multiversion/releases
 ./server/start.sh                          # first start writes plugins/data/multiversion/config.toml and
                                            # pumpkin-settings.txt: paste those settings into pumpkin.toml
                                            # (moves Pumpkin to 127.0.0.1:25566), then restart

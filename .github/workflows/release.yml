@@ -12,8 +12,8 @@ permissions:
   contents: write
 
 jobs:
-  # Pumpkin plugin (WebAssembly) that lets other client versions join (see plugins/multiversion/README.md).
-  multiversion:
+  # perfmon Pumpkin plugin (WebAssembly; see plugins/perfmon/README.md).
+  plugins:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -25,26 +25,16 @@ jobs:
       # Compiled dependencies are reused between runs; only changed crates rebuild.
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            plugins/multiversion
-            plugins/perfmon
+          workspaces: plugins/perfmon
           key: wasm32-wasip2
 
       - name: Test
         run: |
-          cargo test --release --manifest-path plugins/multiversion/Cargo.toml
           cargo test --release --manifest-path plugins/perfmon/Cargo.toml
 
-      - name: Build multiversion.wasm and perfmon.wasm
+      - name: Build perfmon.wasm
         run: |
-          ./plugins/multiversion/build.sh
           ./plugins/perfmon/build.sh
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: multiversion
-          path: plugins/multiversion/target/wasm32-wasip2/release/multiversion.wasm
-          if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
         with:
@@ -68,10 +58,10 @@ jobs:
           | File | For |
           |---|---|
           | \`pumpkin-linux-x86_64\` | Linux x86-64 (Ubuntu 22.04+, Debian 12+). Just the server binary. |
-          | \`Mineversed-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + multiversion plugin. |
+          | \`Mineversed-linux-x86_64.tar.gz\` | Linux: binary + tuned \`pumpkin.toml\` + \`start.sh\` + systemd unit + web panel + perfmon plugin. |
           | \`pumpkin-windows-x86_64.exe\` | Windows x86-64. Just the server binary. |
           | \`Mineversed-windows-x86_64.zip\` | Windows: exe + tuned \`pumpkin.toml\` + \`start.bat\`. |
-          | \`multiversion.wasm\` | Pumpkin plugin that lets 1.21 to 26.2 clients join. Drop it into \`plugins/\`; on first start it writes the three pumpkin.toml settings it needs to \`plugins/data/multiversion/pumpkin-settings.txt\`. Also inside both bundles. |
+          | Multiversion | The plugin that lets 1.21+ clients join lives in its own repository: https://github.com/jayclrk358/Multiversion. The VPS installer downloads it from there. |
           | \`perfmon.wasm\` | Pumpkin plugin for performance and debugging: \`/perf\` shows TPS, tick-time percentiles, lag spikes, entity counts and memory, and it logs metrics to \`plugins/data/perfmon/metrics.csv\`. Also inside both bundles. |
 
           Server binaries are attached when their builds finish (about 30 minutes after the plugin).
@@ -79,10 +69,10 @@ jobs:
           Pumpkin commit \`$commit\` with these patches:
           $patches
           EOF
-          gh release create "$GITHUB_REF_NAME" plugins/multiversion/target/wasm32-wasip2/release/multiversion.wasm plugins/perfmon/target/wasm32-wasip2/release/perfmon.wasm --title "$GITHUB_REF_NAME" --notes-file notes.md
+          gh release create "$GITHUB_REF_NAME" plugins/perfmon/target/wasm32-wasip2/release/perfmon.wasm --title "$GITHUB_REF_NAME" --notes-file notes.md
 
   build:
-    needs: multiversion
+    needs: plugins
     strategy:
       fail-fast: false
       matrix:
@@ -113,11 +103,6 @@ jobs:
         with:
           workspaces: Pumpkin
           key: ${{ matrix.name }}
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: multiversion
-          path: plugins/multiversion
 
       - uses: actions/download-artifact@v4
         with:
@@ -167,8 +152,6 @@ jobs:
           mkdir -p dist bundle/Mineversed
           cp server/pumpkin "dist/pumpkin-${{ matrix.name }}"
           cp server/pumpkin server/pumpkin.toml server/start.sh server/pumpkin.service bundle/Mineversed/
-          mkdir -p bundle/Mineversed/plugins/multiversion
-          cp plugins/multiversion/multiversion.wasm plugins/multiversion/README.md bundle/Mineversed/plugins/multiversion/
           mkdir -p bundle/Mineversed/plugins/perfmon
           cp plugins/perfmon/perfmon.wasm plugins/perfmon/README.md bundle/Mineversed/plugins/perfmon/
           mkdir -p bundle/Mineversed/panel && cp panel/panel.py panel/panel.html panel/panel.service panel/README.md bundle/Mineversed/panel/
@@ -182,8 +165,6 @@ jobs:
           New-Item -ItemType Directory -Force dist, bundle/Mineversed | Out-Null
           Copy-Item server/pumpkin.exe "dist/pumpkin-${{ matrix.name }}.exe"
           Copy-Item server/pumpkin.exe, server/pumpkin.toml, server/start.bat bundle/Mineversed/
-          New-Item -ItemType Directory -Force bundle/Mineversed/plugins/multiversion | Out-Null
-          Copy-Item plugins/multiversion/multiversion.wasm, plugins/multiversion/README.md bundle/Mineversed/plugins/multiversion/
           New-Item -ItemType Directory -Force bundle/Mineversed/plugins/perfmon | Out-Null
           Copy-Item plugins/perfmon/perfmon.wasm, plugins/perfmon/README.md bundle/Mineversed/plugins/perfmon/
           New-Item -ItemType Directory -Force bundle/Mineversed/panel | Out-Null

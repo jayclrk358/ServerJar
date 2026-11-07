@@ -6,7 +6,7 @@
 # What it does, idempotently:
 #   1. installs the few packages needed (ca-certificates, python3, curl, ufw)
 #   2. creates a `minecraft` user and puts the latest release in /opt/minecraft
-#   3. installs the multiversion plugin and wires pumpkin.toml for it (other client versions can join)
+#   3. installs the multiversion plugin (github.com/jayclrk358/Multiversion) and wires pumpkin.toml for it
 #   4. installs the web panel as a service that also starts the server at boot
 #   5. opens the game port in the firewall
 #   6. installs the `mc` command: mc start|stop|restart|status|console|logs|panel|update
@@ -84,16 +84,16 @@ else
   curl -fsSL --retry 3 -o "$MC_DIR/panel/panel.py" "$RAW/panel/panel.py" || die "could not download panel.py"
   curl -fsSL --retry 3 -o "$MC_DIR/panel/panel.html" "$RAW/panel/panel.html" || die "could not download panel.html"
 fi
-# Plugin: from the bundle, else the release asset; without it the server still runs, just 26.3-only.
+# Multiversion plugin, from its own repository's latest release; without it the server still runs,
+# just 26.3-only.
 HAVE_PLUGIN=0
-if [[ -f "$B/plugins/multiversion/multiversion.wasm" ]]; then
-  install -m 644 "$B/plugins/multiversion/multiversion.wasm" "$MC_DIR/plugins/multiversion.wasm"; HAVE_PLUGIN=1
-elif PLUGIN_URL="$(asset_url multiversion.wasm)" && [[ -n "$PLUGIN_URL" ]] && curl -fsSL --retry 3 --max-time 120 -o "$TMP/multiversion.wasm" "$PLUGIN_URL" 2>/dev/null; then
+MV_URL="${MV_URL:-https://github.com/jayclrk358/Multiversion/releases/latest/download/multiversion.wasm}"
+if curl -fsSL --retry 3 --max-time 120 -o "$TMP/multiversion.wasm" "$MV_URL" 2>/dev/null; then
   install -m 644 "$TMP/multiversion.wasm" "$MC_DIR/plugins/multiversion.wasm"; HAVE_PLUGIN=1
 elif [[ -f "$MC_DIR/plugins/multiversion.wasm" ]]; then
   HAVE_PLUGIN=1
 else
-  say "No multiversion.wasm in this release yet: the server will accept 26.3 clients only. Re-run 'mc update' after the next release."
+  say "Could not download multiversion.wasm from github.com/jayclrk358/Multiversion: the server will accept 26.3 clients only. Re-run 'mc update' once it has a release."
 fi
 
 # perfmon (performance and debug plugin): from the bundle, else the release asset; optional.

@@ -86,7 +86,16 @@ impl V26_3To26_2 {
             new::LEVEL_EVENT => Some(World::level_event(items, p).map_err(e)?),
             new::BLOCK_ENTITY_DATA => Some(World::block_entity_data(p).map_err(e)?),
             new::UPDATE_TAGS => Some(World::update_tags(items, p).map_err(e)?),
-            new::LEVEL_PARTICLES => Some(self.misc.level_particles(items, p).map_err(e)?),
+            new::LEVEL_PARTICLES => match self.misc.level_particles(items, p) {
+                Ok(v) => Some(v),
+                Err(err) => {
+                    // A particle is only a visual effect: drop it rather than disconnect the player.
+                    let id = crate::proto::buf::Reader::new(p).varint().unwrap_or(-1);
+                    let name = super::data_26_2::NEW_PARTICLE_NAMES.get(id.max(0) as usize).copied().unwrap_or("?");
+                    crate::log::warn_once(&format!("particle:{name}"), &format!("dropped a {name} particle the 26.3 -> 26.2 step could not decode ({err}); please report this"));
+                    return Ok(());
+                }
+            },
             new::SOUND | new::SOUND_ENTITY => Some(self.misc.sound(items, p).map_err(e)?),
             new::EXPLODE => Some(self.misc.explode(items, p).map_err(e)?),
             new::OPEN_SCREEN => Some(self.misc.open_screen(p).map_err(e)?),

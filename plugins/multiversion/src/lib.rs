@@ -90,6 +90,17 @@ mod plugin {
 
 /// Logging that goes to the server console through the plugin API on wasm, stderr natively.
 pub mod log {
+    /// Logs a warning once per `key` for the life of the plugin.
+    pub fn warn_once(key: &str, msg: &str) {
+        static SEEN: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+        let mut seen = SEEN.lock().unwrap_or_else(|e| e.into_inner());
+        if seen.iter().any(|k| k == key) {
+            return;
+        }
+        seen.push(key.to_string());
+        drop(seen);
+        warn(msg);
+    }
     #[cfg(target_arch = "wasm32")]
     pub fn info(msg: &str) {
         pumpkin_plugin_api::logging::log(pumpkin_plugin_api::logging::LogLevel::Info, &format!("[multiversion] {msg}"));

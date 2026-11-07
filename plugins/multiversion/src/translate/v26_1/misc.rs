@@ -34,7 +34,7 @@ impl Misc {
             "block" | "block_marker" | "falling_dust" | "dust_pillar" | "block_crumble" => {
                 data.varint(items.block_state(r.varint()?));
             }
-            "item" => items.item_stack(r, &mut data)?,
+            "item" => items.item_template(r, &mut data)?,
             "dust" => Items::copy_bytes(r, &mut data, 8)?,
             "dust_color_transition" => Items::copy_bytes(r, &mut data, 12)?,
             "vibration" => {

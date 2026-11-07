@@ -106,7 +106,13 @@ impl ProxyHandler {
     fn close(&mut self, reactor: &mut Reactor, client: Token, reason: &str, abrupt: bool) {
         if let Some(c) = self.conns.remove(&client) {
             if c.phase != Phase::Status && c.phase != Phase::StatusBackendHandshake && c.phase != Phase::StatusBackendWait && !reason.starts_with("status") {
-                log::info(&format!("{} disconnected: {reason}", c.describe()));
+                let msg = format!("{} disconnected: {reason}", c.describe());
+                if c.phase == Phase::Handshake && c.username.is_empty() {
+                    // Never sent a handshake: a port scanner or a client's connection probe.
+                    log::debug(&msg);
+                } else {
+                    log::info(&msg);
+                }
             }
             if abrupt {
                 reactor.close_now(client);

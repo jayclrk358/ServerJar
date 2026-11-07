@@ -25,6 +25,3 @@
 /server/.panel-auth.json
 /server/.panel-cert.pem
 /server/.panel-key.pem
-
-# Local tooling state
-/.claude/
